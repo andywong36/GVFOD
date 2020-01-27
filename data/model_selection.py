@@ -8,7 +8,15 @@ from sklearn.utils.validation import indexable, _num_samples
 class TimeSeriesFolds(_BaseKFold):
     """
     An implementation of Time-Series cross-validating
-    A class to split time series databases such that training requirements can be evaluated
+    A class to split time series databases such that training requirements can be evaluated.
+
+    Initialization parameters:
+    Args:
+        n_splits (int): number of folds to create (same as sklearn.model_selection.KFold)
+        min_test_size (int, None): the minimum testing data to retain. Useful for high n_splits, such that the last
+                                   folds don't have too small of a testing set
+        max_train_size (int, None): whether or not to throw out earlier data. Useful for statistical validation
+        use_all_testing_data (bool): default True. if False, then the testing set is only ever min_test_size in size.
     """
 
     def __init__(self, n_splits, min_test_size=None, max_train_size=None, use_all_testing_data=True):

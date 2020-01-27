@@ -4,11 +4,12 @@ This will be a univariate analysis of torque akin to previous analysis. """
 from typing import Union
 
 import numpy as np
+from pyod.models.base import BaseDetector
 
-from data.dataloader import get_robotarm_torque_data
+from data.dataloader import get_robot_arm_data
 
 
-class Markov:  # TODO subclass pyod
+class Markov(BaseDetector):
     def __init__(self, n_sensors, contamination: float,
                  divisions: Union[int, None] = None,
                  resample: bool = False,
@@ -32,20 +33,22 @@ class Markov:  # TODO subclass pyod
         self.sample_period = sample_period
 
         self.states = None
-        self.contamination = contamination
         self.threshold_ = None
         self.decision_scores_ = None
 
         self._n_sensors = n_sensors
 
+        super().__init__(contamination)
+
     def __str__(self):
         return 'MarkovChain'
 
-    def fit(self, X):
+    def fit(self, X, y=None):
         """ Fit training data for outlier detection
 
         Args:
             X: data to fit
+            y: not used, for compatibility
 
         Returns:
             self
@@ -79,6 +82,8 @@ class Markov:  # TODO subclass pyod
         self.decision_scores_ = self.nll(X)
         self.threshold_ = np.quantile(self.decision_scores_, (1 - self.contamination))
 
+        self._process_decision_scores()
+
         return self
 
     def _preprocess(self, X: np.ndarray, set_scaling: bool):
@@ -92,7 +97,8 @@ class Markov:  # TODO subclass pyod
                 # 3rd axis = sensor
                 X = np.reshape(X.ravel(order="F"), (X.shape[0], -1, self._n_sensors), order="F")
         else:
-            self._n_sensors = X.shape[2]
+            assert X.ndim == 3
+            assert self._n_sensors == X.shape[2]
 
         assert X.ndim == 3, "X needs to have either 2 or 3 dimensions"
 
@@ -147,18 +153,12 @@ class Markov:  # TODO subclass pyod
                 except KeyError:
                     p[i] = np.inf
 
-        return np.minimum(p, 500)
+        return np.minimum(p, X.shape[1] * X.shape[2] / 2)
 
     def decision_function(self, X):
         """ for pyod """
         X = self._preprocess(X, set_scaling=False)
         return self.nll(X)
-
-    def predict(self, X):
-        import warnings
-        np.seterr(all="raise")
-        X = self._preprocess(X, set_scaling=False)
-        return self.nll(X) > self.threshold_
 
 
 def main():
@@ -168,9 +168,12 @@ def main():
 
     np.random.seed(97)
     # nor, abn = get_machine_torque_data()
-    nor, abn = get_robotarm_torque_data()
+    X, y, a_list = get_robot_arm_data(return_class_labels=True)
+    nor = X[y==0, :]
+    abn = [X[y == i, :] for i in range(1, len(a_list))]
 
-    model = MODEL(n_sensors=1, contamination=0.05, divisions=30, resample=True, sample_period=50)
+    model = MODEL(n_sensors=nor.shape[1] // 2000, contamination=0.05,
+                  divisions=6, resample=True, sample_period=1)
     # model = Markov(contamination=0.05)
     trainsize = 0.6
 
@@ -183,8 +186,8 @@ def main():
     n = 0
     plt.plot(model.decision_scores_, 'o', color='k', markersize=0.3)
     text_y_loc = np.mean(model.decision_scores_)
-    test_y_offset = -0.5 * np.std(model.decision_scores_)
-    text_y_loc += 2 * test_y_offset
+    test_y_offset = -2 * np.std(model.decision_scores_)
+    text_y_loc += -5 * test_y_offset
     plt.text(cutoff / 2, text_y_loc, 'Training', horizontalalignment='center')
     n += cutoff
     plt.axvline(0, linestyle='--', lw=0.2)
@@ -196,11 +199,11 @@ def main():
     n += len(nor) - cutoff
     plt.axvline(n, linestyle='--', lw=0.2)
 
-    for i, item in enumerate(abn):
-        plt.plot(np.arange(n, n + len(item[1])), model.decision_function(item[1]), 'o', label=item[0], color='b',
+    for i, (dat, label) in enumerate(zip(abn, a_list[1:])):
+        plt.plot(np.arange(n, n + len(dat)), model.decision_function(dat), 'o', label=label, color='b',
                  markersize=0.3)
-        plt.text(n + len(item[1]) / 2, text_y_loc + test_y_offset * (i % 3), item[0], horizontalalignment='center')
-        n += len(item[1])
+        plt.text(n + len(dat) / 2, text_y_loc + test_y_offset * (i % 3), label, horizontalalignment='center')
+        n += len(dat)
         plt.axvline(n, linestyle='--', lw=0.2)
 
     plt.title("Algorithm: " + str(model))

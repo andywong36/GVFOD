@@ -20,7 +20,7 @@ def read_results(path):
     return res_df
 
 def linplot(df: pd.DataFrame, col: str):
-    """ #Todo
+    """ # Todo documentation
 
     Args:
         df:

@@ -11,6 +11,9 @@ def get_robot_arm_data(return_class_labels=False):
         Tuple(X: np.ndarray, y: np.ndarray): X contains an array of both normal and abnormal data, where each row has
             length n * k, where n is the length of each time series, and k is the number of sensors. y is the outlier
             label (int)
+        or
+        Tuple(X:np.ndarray, y: np.ndarray), labels: List[str]): the same as above, except with a list of outlier classes
+            0 for normal, positive integer for outliers.
     """
 
     # Normal data
