@@ -1,4 +1,3 @@
-
 class IncrMeanVar:
     def __init__(self):
         self.n = 0
@@ -27,5 +26,3 @@ class IncrMeanVar:
 
     def get(self):
         return self.mu, self.var
-
-

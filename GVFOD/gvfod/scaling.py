@@ -21,19 +21,6 @@ scaling = {
 }
 
 
-def save(data):
-    """
-    Saves a dictionary to a json file
-    Args:
-        data (dict): to save
-    Returns:
-        None
-    """
-    import json
-    with open('scaling.json', 'w') as outfile:
-        json.dump(data, outfile)
-
-
 def get_max_min(folder, startswith):
     """
     Gets the maximum and minimum of columns of dataframes, across multiple files
@@ -58,8 +45,3 @@ def get_max_min(folder, startswith):
                     max_min[item]['max'] = max(df[item].max(), max_min[item]['max'])
                     max_min[item]['min'] = min(df[item].min(), max_min[item]['min'])
     return max_min
-
-
-if __name__ == "__main__":
-    # save(scaling)
-    print(get_max_min('data/pickles', 'machine'))

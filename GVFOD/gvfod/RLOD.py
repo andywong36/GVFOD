@@ -7,9 +7,9 @@ import numpy as np
 from pyod.models.base import BaseDetector
 from sklearn.preprocessing import MinMaxScaler as MMS
 
-import rlod.tiles3 as tile
-from rlod.surprise import TDLambdaGVF
-from rlod import clearn
+from . import tiles3 as tile
+from .surprise import TDLambdaGVF
+from . import clearn
 
 
 class RLOD(BaseDetector):
@@ -168,46 +168,3 @@ class RLOD(BaseDetector):
             tderrors[:, j], surprise[:, j] = self.models[j].eval(phi, X_scaled[:, j])
         averaged = np.array([np.mean(arr) for arr in np.vsplit(surprise, n_samples)])
         return averaged
-
-
-def test():
-    import matplotlib.pyplot as plt
-    import time
-
-    from data.dataloader import get_robot_arm_data
-
-    print("Beginning RLOD testing")
-
-    X, y = get_robot_arm_data()
-    X_nor = X[y == 0]
-
-    model = RLOD(n_sensors=X.shape[1] // 2000,
-                 divisions=[4, 4, 4],
-                 wrap_idxs=None,
-                 int_idxs=None,
-                 numtilings=32,
-                 state_size=2048,
-                 discount_rate=0.986,
-                 learn_rate=0.005,
-                 lamda=0.25,
-                 beta=1000,
-                 contamination=0.05)
-
-    cutoff = int(len(X_nor) * 0.6)
-    start = time.time()
-    model.fit(X_nor[:cutoff])
-    print(f"It takes {time.time() - start}s to train {cutoff} samples.")
-
-    y_pred = model.decision_function(X_nor)
-
-    fig, ax = plt.subplots()
-    ax.scatter(np.arange(len(X_nor)), y_pred, s=0.1)
-    ax.axhline(model.threshold_, color="red", ls="--")
-    ax.axvline(cutoff)
-
-    plt.show()
-    print("Finished RLOD testing")
-
-
-if __name__ == "__main__":
-    test()

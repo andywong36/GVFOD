@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 from tqdm import trange
 
-import rlod.tiles3 as tile
+from . import tiles3 as tile
 
 
 class Tiler:
@@ -103,15 +103,3 @@ class Tiler:
             else:
                 wraps.append(False)
         return wraps
-
-
-def test():
-    from rlod.scaling import scaling
-    tiler = Tiler(scaling["machine"])
-    sample_data = pd.read_pickle("data/pickles/machine_normal.pkl").iloc[:, :]
-    hashed = tiler.encode(sample_data)
-    return hashed
-
-
-if __name__ == "__main__":
-    print(test())

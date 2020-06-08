@@ -21,7 +21,7 @@ from pyod.models.abod import ABOD
 from pyod.models.hbos import HBOS
 from pyod.models.pca import PCA
 from markov.markov import Markov
-from rlod.RLOD import RLOD
+from GVFOD.gvfod.RLOD import RLOD
 
 import data.dataloader as dtl
 import data.model_selection as ms
