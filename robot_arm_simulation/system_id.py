@@ -265,16 +265,16 @@ def ode_const(r_m=SystemProperties.defaults["r_m"], r_i=SystemProperties.default
                     + T_m_i * dT_m_i
                     - (math.cos(math.pi - SystemProperties.angles["m"])
                        * (dT_a_m * T_m_i + dT_m_i * T_a_m)))
-                   / Nm)
+                   / (Nm + 1E-15))
             dNi = ((T_m_i * dT_m_i
                     + T_i_a * dT_i_a
                     - (math.cos(math.pi - SystemProperties.angles["i"])
                        * (dT_m_i * T_i_a + dT_i_a * T_m_i)))
-                   / Ni)
+                   / (Ni + 1E-15))
             dNa = ((T_i_a * dT_i_a + T_a_m * dT_a_m
                     - (math.cos(math.pi - SystemProperties.angles["a"])
                        * (dT_i_a * T_a_m + dT_a_m * T_i_a)))
-                   / Na)
+                   / (Na + 1E-15))
 
             # Calculate the gradient of friction:
             #   friction_m = -Nm * (f1m * ssign(y[1]) + f2m * y[1])
@@ -309,9 +309,9 @@ def objective(x: dict):
         y0=y0,
         t_eval=data["Time"],
         method='LSODA',
-        jac=ode_const(jac=True),
-        rtol=1E-2,
-        atol=1E-4,
+        jac=ode_const(jac=True, **x),
+        # rtol=1E-2,
+        # atol=1E-4,
     )
 
     return {
@@ -322,13 +322,13 @@ def objective(x: dict):
         # Other results
         'start_time': start,
         'elapsed': time.time() - start,
-        'responses': results.y.tostring()
+        # 'responses': results.y.tostring()
     }
 
 
 if __name__ == "__main__":
     trials = MongoTrials(r'mongo://melco.cs.ualberta.ca:27017/rasim_db/jobs',
-                         exp_key='exp14-new-friction-all-params')
+                         exp_key='exp15-new-friction-all-params')
     space = {
         'r_m': hp.uniform('r_m', 0.01, 0.015),
         'r_i': hp.uniform('r_i', 0.01, 0.015),
@@ -339,25 +339,26 @@ if __name__ == "__main__":
         'l_1': hp.uniform('l_1', 0.1, 0.15),
         'l_2': hp.uniform('l_2', 0.125, 0.175),
         'l_3': hp.uniform('l_3', 0.15, 0.20),
-        'slope1': hp.uniform('slope1', -0.31, -0.28),
-        'slope2': hp.uniform('slope2', 0.205, 0.24),
+        'slope1': hp.normal('slope1', -0.28, 0.02),
+        'slope2': hp.normal('slope2', 0.21, 0.02),
         'EA': hp.loguniform('EA', 8, 12.5),
         'C_L': hp.uniform('C_L', 5, 10),
         'base_T': hp.uniform('base_T', 100, 200),
-        'f1m': hp.lognormal('f1m', math.log(0.2 / 2000), math.log(1.2)),
-        'f2m': hp.lognormal('f2m', math.log(0.2 / 2000), math.log(1.2)),
-        'f1i': hp.lognormal('f1i', math.log(0.2 / 20000), math.log(1.2)),
-        'f2i': hp.lognormal('f2i', math.log(0.2 / 20000), math.log(1.2)),
-        'f1a': hp.lognormal('f1a', math.log(0.2 / 200), math.log(1.2)),
-        'f2a': hp.lognormal('f2a', math.log(0.2 / 200), math.log(1.2)),
+        'f1m': hp.lognormal('f1m', math.log(0.00015), 1),
+        'f2m': hp.lognormal('f2m', math.log(0.00015), 1),
+        'f1i': hp.lognormal('f1i', math.log(0.00001), 1),
+        'f2i': hp.lognormal('f2i', math.log(0.00001), 1),
+        'f1a': hp.lognormal('f1a', math.log(0.0004), 1),
+        'f2a': hp.lognormal('f2a', math.log(0.0006), 1),
     }
 
     best = fmin(
-        wrap_cost(objective, timeout=1200, iters=1),
+        wrap_cost(objective, timeout=480, iters=1),
         space=space,
         algo=tpe.suggest,
         max_evals=40000,
-        trials=trials
+        trials=trials,
+        max_queue_len=32,
     )
 
     # space = hp.uniform('x', -2, 2)
