@@ -7,18 +7,17 @@ arm positions.
 Optimization is done with the hyperopt package. Distributed optimization is done using the MongoDB client, implemented
 within hyperopt.
 """
-
 from functools import partial
 import math
 import time
+from typing import Union
 
-from hyperopt import fmin, tpe, hp, STATUS_OK
-from hyperopt.mongoexp import MongoTrials
 import numpy as np
 import pandas as pd
-from scipy import integrate, interpolate
-
+from hyperopt import fmin, tpe, hp, STATUS_OK
+from hyperopt.mongoexp import MongoTrials
 from hyperopt_wrap_cost import wrap_cost
+from scipy import integrate, interpolate
 
 # Read data
 from utils import get_angle, ssign, dssign
@@ -28,7 +27,31 @@ data.columns = ["Time", "Run", "Direction", "Angle", "Torque", "Tension"]
 
 
 class SystemProperties:
-    """ Default parameters (empirical values used where possible) for the robot arm simulation"""
+    optimized_params = {
+        # Each element is a list as a convenience - for easy import from mongodb.
+        "C_L": [6.6713942381117635],
+        "EA": [5780.2205316136415],
+        "I_a": [0.7996747467139584],
+        "I_i": [3.5622535551286727e-7],
+        "J_m": [0.00001766879262780176],
+        "base_T": [108.608767011835],
+        "f1a": [0.0003955544461215904],
+        "f1i": [0.00001431481389581998],
+        "f1m": [9.341410254465412e-7],
+        "f2a": [0.000018745852944719195],
+        "f2i": [0.0003168880536570618],
+        "f2m": [0.00010327106681337977],
+        "l_1": [0.13609128634917547],
+        "l_2": [0.17493368233291345],
+        "l_3": [0.15768702528416406],
+        "r_a": [0.01944555898288411],
+        "r_i": [0.010198789972121942],
+        "r_m": [0.014997441255462608],
+        "slope1": [-0.23865604682750943],
+        "slope2": [0.20331764050832446]
+    }
+
+    " Default parameters (empirical values used where possible) for the robot arm simulation"
     defaults = {"r_m": 0.0122, "r_i": 0.0122, "r_a": 0.0189,
                 "J_m": 8.235E-5, "I_i": 2.4449E-6, "I_a": 0.5472,
                 "l_1": 0.127, "l_2": 0.1524, "l_3": 0.1778,
@@ -296,22 +319,27 @@ def ode_const(r_m=SystemProperties.defaults["r_m"], r_i=SystemProperties.default
         return J
 
 
-def objective(x: dict):
+def objective(x: Union[list, dict], tight_tol=True, argnames=None):
     """ Same function signature as ode_const(). Used to define the objective for hyperopt """
-    ode = ode_const(**x)
+    if isinstance(x, dict):
+        kwargs = x
+    else:
+        # sensitivity_test does not supply arguments as dict
+        kwargs = {k: v for k, v in zip(argnames, x)}
+    ode = ode_const(**kwargs)
 
     y0 = np.array([5.33249302e-01, 0, 5.33249314e-01, 0, 0.344213835078322, 0])
 
     start = time.time()
+    tol_params = dict() if tight_tol else {"rtol": 1E-2, "atol": 1E-4}
     results = integrate.solve_ivp(
         fun=ode,
         t_span=(0, 40),
         y0=y0,
         t_eval=data["Time"],
         method='LSODA',
-        jac=ode_const(jac=True, **x),
-        # rtol=1E-2,
-        # atol=1E-4,
+        jac=ode_const(jac=True, **kwargs),
+        **tol_params,
     )
 
     return {
