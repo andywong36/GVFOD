@@ -21,10 +21,13 @@ from scipy import integrate, interpolate
 
 # Read data
 from utils import get_angle, ssign, dssign
+from controller import PIDController
 
 data = pd.read_csv(r"test_data.csv")
 data.columns = ["Time", "Run", "Direction", "Angle", "Torque", "Tension"]
 
+CONTROLLER = True
+K_p = 3
 
 class SystemProperties:
     optimized_params = {
@@ -138,7 +141,7 @@ def ode(time, y, torque_estimator,
 
     """
 
-    torque = torque_estimator(time)
+    torque = torque_estimator(time, y[4])
     # torque = 0
 
     # Calculate tensions
@@ -248,11 +251,16 @@ def ode_const(r_m=SystemProperties.defaults["r_m"], r_i=SystemProperties.default
 
     if not jac:
         # Set up the torque inputs
-        torque_interpolator = interpolate.interp1d(data["Time"],
-                                                   data["Torque"],
-                                                   bounds_error=False,
-                                                   fill_value="extrapolate"
-                                                   )
+        if CONTROLLER:
+            _controller = PIDController(K_p)
+            torque_interpolator = _controller.control
+        else:
+            _f_interp = interpolate.interp1d(data["Time"],
+                                             data["Torque"],
+                                             bounds_error=False,
+                                             fill_value="extrapolate"
+                                             )
+            torque_interpolator = lambda t, y: _f_interp(t)
 
         return partial(ode, torque_estimator=torque_interpolator,
                        r_m=r_m, r_i=r_i, r_a=r_a,
