@@ -5,7 +5,7 @@ from system_id import *
 
 if __name__ == "__main__":
 
-    kwargs = SystemProperties.optimized_params
+    kwargs = RobotArmDynamics.optimized_params
 
     for key, val in kwargs.items():
         kwargs[key] = val[0]

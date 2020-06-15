@@ -10,7 +10,7 @@ from SALib.sample import saltelli
 from SALib.analyze import sobol
 from tqdm import tqdm
 
-from main import SystemProperties
+from main import RobotArmDynamics
 from system_id import objective
 
 
@@ -28,7 +28,7 @@ def main():
     else:
         n_runs = 1
     # Define the search space
-    kwargs = SystemProperties.optimized_params
+    kwargs = RobotArmDynamics.optimized_params
     _d = delta
     _bounds = [[val[0] * (1 - _d * sign(val[0])), val[0] * (1 + _d * sign(val[0]))] for val in kwargs.values()]
     problem = {
@@ -68,7 +68,7 @@ def visualize(pkl_file):
     with open(pkl_file, 'rb') as f:
         Si = pickle.load(f)
     _o1_cols = ['S1', 'S1_conf', 'ST', 'ST_conf']
-    order1 = pd.DataFrame(index=SystemProperties.optimized_params.keys(),
+    order1 = pd.DataFrame(index=RobotArmDynamics.optimized_params.keys(),
                           columns=_o1_cols,
                           data=np.array([Si[col] for col in _o1_cols]).T)
     # order1["S1a"] = np.abs(order1["S1"])

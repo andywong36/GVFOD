@@ -5,11 +5,11 @@ import matplotlib.pyplot as plt
 from system_id import *
 
 if __name__ == "__main__":
-    kwargs = SystemProperties.optimized_params
+    kwargs = RobotArmDynamics.optimized_params
 
     for key, val in kwargs.items():
         kwargs[key] = val[0]
-    ode = ode_const(**kwargs)
+    model = RobotArmDynamics(**kwargs)
 
     # Initial conditions: where the displacement of each pulley is equal (0 net tension), and all 3 pulley are
     # stationary
@@ -23,12 +23,12 @@ if __name__ == "__main__":
     # Solve ODE
     start = time.time()
     results = integrate.solve_ivp(
-        fun=ode,
+        fun=model.ode,
         t_span=(0, 40),
         y0=y0,
         t_eval=data["Time"],
         method='LSODA',
-        jac=ode_const(jac=True, **kwargs),
+        jac=model.J,
     )
     print(f" Time taken: {time.time() - start}")
     print("Done")
