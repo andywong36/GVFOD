@@ -29,26 +29,26 @@ data.columns = ["Time", "Run", "Direction", "Angle", "Torque", "Tension"]
 class SystemProperties:
     optimized_params = {
         # Each element is a list as a convenience - for easy import from mongodb.
-        "C_L": [6.6713942381117635],
-        "EA": [5780.2205316136415],
-        "I_a": [0.7996747467139584],
-        "I_i": [3.5622535551286727e-7],
-        "J_m": [0.00001766879262780176],
-        "base_T": [108.608767011835],
-        "f1a": [0.0003955544461215904],
-        "f1i": [0.00001431481389581998],
-        "f1m": [9.341410254465412e-7],
-        "f2a": [0.000018745852944719195],
-        "f2i": [0.0003168880536570618],
-        "f2m": [0.00010327106681337977],
-        "l_1": [0.13609128634917547],
-        "l_2": [0.17493368233291345],
-        "l_3": [0.15768702528416406],
-        "r_a": [0.01944555898288411],
-        "r_i": [0.010198789972121942],
-        "r_m": [0.014997441255462608],
-        "slope1": [-0.23865604682750943],
-        "slope2": [0.20331764050832446]
+        "C_L": [8.089204515094815],
+        "EA": [161694.05230106757],
+        "I_a": [0.7992898126084464],
+        "I_i": [0.000007037587305395322],
+        "J_m": [0.0001129737845344151],
+        "base_T": [105.58343021174701],
+        "f1a": [9.801184182178967e-8],
+        "f1i": [0.000009372853303309886],
+        "f1m": [0.0007371161415786339],
+        "f2a": [0.00006765504610816992],
+        "f2i": [0.00002675536900709562],
+        "f2m": [9.102496058072013e-7],
+        "l_1": [0.1270910747841018],
+        "l_2": [0.1526244848593924],
+        "l_3": [0.17756194187675356],
+        "r_a": [0.01877502076404243],
+        "r_i": [0.010679834783183186],
+        "r_m": [0.014559735544014454],
+        "slope1": [-0.24123374497580877],
+        "slope2": [0.2176571571072845]
     }
 
     " Default parameters (empirical values used where possible) for the robot arm simulation"
@@ -63,18 +63,13 @@ class SystemProperties:
                 "f1a": 0, "f2a": 0,
                 }
 
-    angles = {
-        "m": get_angle(defaults["l_1"], defaults["l_3"], defaults["l_2"]),
-        "i": get_angle(defaults["l_1"], defaults["l_2"], defaults["l_3"]),
-        "a": get_angle(defaults["l_2"], defaults["l_3"], defaults["l_1"]),
-    }
-
 
 def ode(time, y, torque_estimator,
         r_m, r_i, r_a,
         J_m, I_i, I_a,
         k_1, k_2, k_3,
         d_1, d_2, d_3,
+        angle_m, angle_i, angle_a,
         base_T, slope_1, slope_2,
         f1m, f2m,
         f1i, f2i,
@@ -103,8 +98,8 @@ def ode(time, y, torque_estimator,
     f1m, f2m are for the motor. f1i, f2i are for the idler. f1a, f2a are for the arm.
                             N = sqrt(T1**2 + T2**2 - 2 * T1 * T2 * cos(pi - theta))
                             friction = -N * (f1 * sign(y[i]) + f2 * y[i])
-                        where y[i] is the [angular] velocity, and sign(y[i]) is the direction of travel. The sign function
-                        used is a sigmoid, to allow for differentiability.
+                        where y[i] is the [angular] velocity, and sign(y[i]) is the direction of travel. The sign
+                        function used is a sigmoid, to allow for differentiability.
     f1 has units of m, and f2 has units of s.
 
     Args:
@@ -123,6 +118,9 @@ def ode(time, y, torque_estimator,
         d_1: Dampening, belt 1 (Ns/m)
         d_2: Dampening, belt 2
         d_3: Dampening, belt 3
+        angle_m: the internal angle between the belts at the motor
+        angle_i: the internal angle between the belts at the idler
+        angle_a: the internal angle between the belts at the arm
         base_T: Static / equilibrium tension of the belt.
         slope_1: See above
         slope_2: See above
@@ -148,7 +146,7 @@ def ode(time, y, torque_estimator,
     T_arm = slope_1 * math.sin(y[4]) + slope_2 * math.cos(y[4])
 
     # The normal force is calculated using cosine law
-    Nm, Ni, Na = normal_force(T_m_i, T_i_a, T_a_m)
+    Nm, Ni, Na = normal_force(T_m_i, T_i_a, T_a_m, angle_m, angle_i, angle_a)
 
     # Derivatives of positions and velocities (velocity and acceleration)
     dy = np.empty_like(y)
@@ -168,10 +166,10 @@ def ode(time, y, torque_estimator,
     return dy
 
 
-def normal_force(T_m_i, T_i_a, T_a_m):
-    Nm = math.sqrt(T_a_m ** 2 + T_m_i ** 2 - 2 * T_a_m * T_m_i * math.cos(math.pi - SystemProperties.angles["m"]))
-    Ni = math.sqrt(T_m_i ** 2 + T_i_a ** 2 - 2 * T_m_i * T_i_a * math.cos(math.pi - SystemProperties.angles["i"]))
-    Na = math.sqrt(T_i_a ** 2 + T_a_m ** 2 - 2 * T_i_a * T_a_m * math.cos(math.pi - SystemProperties.angles["a"]))
+def normal_force(T_m_i, T_i_a, T_a_m, angle_m, angle_i, angle_a):
+    Nm = math.sqrt(T_a_m ** 2 + T_m_i ** 2 - 2 * T_a_m * T_m_i * math.cos(math.pi - angle_m))
+    Ni = math.sqrt(T_m_i ** 2 + T_i_a ** 2 - 2 * T_m_i * T_i_a * math.cos(math.pi - angle_i))
+    Na = math.sqrt(T_i_a ** 2 + T_a_m ** 2 - 2 * T_i_a * T_a_m * math.cos(math.pi - angle_a))
     return Nm, Ni, Na
 
 
@@ -246,6 +244,16 @@ def ode_const(r_m=SystemProperties.defaults["r_m"], r_i=SystemProperties.default
     # Dampening factors (kg/ (s))
     d_1, d_2, d_3 = (C_L * l_1, C_L * l_2, C_L * (l_3 * 2 / 3))
 
+    # Inner angles of the belts
+    # angles = {
+    #     "m": get_angle(defaults["l_1"], defaults["l_3"], defaults["l_2"]),
+    #     "i": get_angle(defaults["l_1"], defaults["l_2"], defaults["l_3"]),
+    #     "a": get_angle(defaults["l_2"], defaults["l_3"], defaults["l_1"]),
+    # }
+    angle_m = get_angle(l_1, l_3, l_2)
+    angle_i = get_angle(l_1, l_2, l_3)
+    angle_a = get_angle(l_2, l_3, l_1)
+
     if not jac:
         # Set up the torque inputs
         torque_interpolator = interpolate.interp1d(data["Time"],
@@ -259,6 +267,7 @@ def ode_const(r_m=SystemProperties.defaults["r_m"], r_i=SystemProperties.default
                        J_m=J_m, I_i=I_i, I_a=I_a,
                        k_1=k_1, k_2=k_2, k_3=k_3,
                        d_1=d_1, d_2=d_2, d_3=d_3,
+                       angle_m=angle_m, angle_i=angle_i, angle_a=angle_a,
                        base_T=base_T, slope_1=slope1, slope_2=slope2,
                        f1m=f1m, f2m=f2m, f1i=f1i, f2i=f2i, f1a=f1a, f2a=f2a)
 
@@ -273,7 +282,8 @@ def ode_const(r_m=SystemProperties.defaults["r_m"], r_i=SystemProperties.default
             # Friction is calculated as
             #   friction_m = -Nm * (f1m * np.sign(y[1]) + f2m * y[1])
             # Dependent on the normal forces Nm, Ni, and Na, calculated as
-            #   Nm = math.sqrt(T_a_m ** 2 + T_m_i ** 2 - 2 * T_a_m * T_m_i * math.cos(math.pi - SystemProperties.angles["m"]))
+            #   Nm = math.sqrt(T_a_m ** 2 + T_m_i ** 2
+            #                  - 2 * T_a_m * T_m_i * math.cos(math.pi - SystemProperties.angles["m"]))
 
             # Note that d/dx sqrt(f(x)) = f'(x) / (2 * sqrt(x))
             # and taking f(x) = a**2 + b**2 - 2 * a * b * cos(phi),
@@ -281,21 +291,22 @@ def ode_const(r_m=SystemProperties.defaults["r_m"], r_i=SystemProperties.default
             # We have all the a', b' available.
 
             T_m_i, T_i_a, T_a_m = tensions(y, base_T, d_1, d_2, d_3, k_1, k_2, k_3, r_a, r_i, r_m)
-            Nm, Ni, Na = normal_force(T_m_i, T_i_a, T_a_m)
+            Nm, Ni, Na = normal_force(T_m_i, T_i_a, T_a_m, angle_m, angle_i, angle_a)
 
             # Gradients of normal forces
             dNm = ((T_a_m * dT_a_m
                     + T_m_i * dT_m_i
-                    - (math.cos(math.pi - SystemProperties.angles["m"])
+                    - (math.cos(math.pi - angle_m)
                        * (dT_a_m * T_m_i + dT_m_i * T_a_m)))
                    / (Nm + 1E-15))
             dNi = ((T_m_i * dT_m_i
                     + T_i_a * dT_i_a
-                    - (math.cos(math.pi - SystemProperties.angles["i"])
+                    - (math.cos(math.pi - angle_i)
                        * (dT_m_i * T_i_a + dT_i_a * T_m_i)))
                    / (Ni + 1E-15))
-            dNa = ((T_i_a * dT_i_a + T_a_m * dT_a_m
-                    - (math.cos(math.pi - SystemProperties.angles["a"])
+            dNa = ((T_i_a * dT_i_a
+                    + T_a_m * dT_a_m
+                    - (math.cos(math.pi - angle_a)
                        * (dT_i_a * T_a_m + dT_a_m * T_i_a)))
                    / (Na + 1E-15))
 
@@ -326,14 +337,14 @@ def objective(x: Union[list, dict], tight_tol=True, argnames=None):
     else:
         # sensitivity_test does not supply arguments as dict
         kwargs = {k: v for k, v in zip(argnames, x)}
-    ode = ode_const(**kwargs)
+    odefun = ode_const(**kwargs)
 
     y0 = np.array([5.33249302e-01, 0, 5.33249314e-01, 0, 0.344213835078322, 0])
 
     start = time.time()
     tol_params = dict() if tight_tol else {"rtol": 1E-2, "atol": 1E-4}
     results = integrate.solve_ivp(
-        fun=ode,
+        fun=odefun,
         t_span=(0, 40),
         y0=y0,
         t_eval=data["Time"],
@@ -356,7 +367,7 @@ def objective(x: Union[list, dict], tight_tol=True, argnames=None):
 
 if __name__ == "__main__":
     trials = MongoTrials(r'mongo://melco.cs.ualberta.ca:27017/rasim_db/jobs',
-                         exp_key='exp15-new-friction-all-params')
+                         exp_key='exp16-fixed-angles')
     space = {
         'r_m': hp.uniform('r_m', 0.01, 0.015),
         'r_i': hp.uniform('r_i', 0.01, 0.015),
@@ -364,9 +375,9 @@ if __name__ == "__main__":
         'J_m': hp.loguniform('J_m', -11, -8),
         'I_i': hp.loguniform('I_i', -15, -11),
         'I_a': hp.uniform('I_a', 0.3, 0.8),
-        'l_1': hp.uniform('l_1', 0.1, 0.15),
-        'l_2': hp.uniform('l_2', 0.125, 0.175),
-        'l_3': hp.uniform('l_3', 0.15, 0.20),
+        'l_1': hp.uniform('l_1', 0.126, 0.128),
+        'l_2': hp.uniform('l_2', 0.1515, 0.1535),
+        'l_3': hp.uniform('l_3', 0.177, 0.179),
         'slope1': hp.normal('slope1', -0.28, 0.02),
         'slope2': hp.normal('slope2', 0.21, 0.02),
         'EA': hp.loguniform('EA', 8, 12.5),

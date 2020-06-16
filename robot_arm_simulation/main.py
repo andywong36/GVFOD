@@ -6,9 +6,9 @@ from system_id import *
 
 if __name__ == "__main__":
     kwargs = SystemProperties.optimized_params
-
     for key, val in kwargs.items():
         kwargs[key] = val[0]
+
     ode = ode_const(**kwargs)
 
     # Initial conditions: where the displacement of each pulley is equal (0 net tension), and all 3 pulley are
