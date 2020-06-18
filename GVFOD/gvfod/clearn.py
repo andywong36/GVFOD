@@ -8,6 +8,7 @@ from numpy.ctypeslib import ndpointer
 
 logger = logging.getLogger(__name__)
 
+
 def learn(x, y,
           tde, w, z, gamma,
           lambda_, alpha):
@@ -95,6 +96,3 @@ def learn(x, y,
         nobs_arg, ntilings_arg, nweights_arg,
         gamma_arg, lambda_arg, alpha_arg
     )
-
-
-

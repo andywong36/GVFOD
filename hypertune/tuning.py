@@ -20,7 +20,7 @@ from data.dataloader import get_robot_arm_data
 
 def cross_val_od_score(clf_cls: Type[pyod.models.base.BaseDetector], kwargs: dict,
                        X: np.ndarray, y: np.ndarray, cv: int, scoring: Union[str, Callable],
-                       transform: Union[None, Callable], pool: Pool) -> np.ndarray:
+                       transform: Union[None, Callable], pool: Pool):
     """ Calculates a list of metrics for cross validated experiments on a set of parameters
 
     Args:
@@ -43,8 +43,8 @@ def cross_val_od_score(clf_cls: Type[pyod.models.base.BaseDetector], kwargs: dic
 
     func = partial(_od_score, clf_cls=clf_cls, kwargs=kwargs, X=X, y=y,
                    scoring=scoring, transform=transform)
-    iter = pool.imap(func, skf.split(X, y))
-    scores = np.array(list(iter))
+    iterator = pool.imap(func, skf.split(X, y))
+    scores = np.array(list(iterator))
 
     results = {
         "loss": 1 - scores.mean(),

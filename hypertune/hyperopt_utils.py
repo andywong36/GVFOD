@@ -3,6 +3,7 @@ import pickle
 import numpy as np
 import pandas as pd
 
+
 def read_results(path):
     with open(path, "rb") as f:
         results = pickle.load(f)
@@ -18,6 +19,7 @@ def read_results(path):
         )
 
     return res_df
+
 
 def linplot(df: pd.DataFrame, col: str):
     """ # Todo documentation

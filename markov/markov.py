@@ -169,7 +169,7 @@ def main():
     np.random.seed(97)
     # nor, abn = get_machine_torque_data()
     X, y, a_list = get_robot_arm_data(return_class_labels=True)
-    nor = X[y==0, :]
+    nor = X[y == 0, :]
     abn = [X[y == i, :] for i in range(1, len(a_list))]
 
     model = MODEL(n_sensors=nor.shape[1] // 2000, contamination=0.05,

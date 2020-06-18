@@ -31,5 +31,6 @@ class TestClearn(unittest.TestCase):
 
         np.testing.assert_allclose(agent1.tderrors, agent2.tderrors)
 
+
 if __name__ == "__main__":
     unittest.main()

@@ -38,11 +38,10 @@ class TestRLOD(unittest.TestCase):
         normal_pred = model.predict(X_nor)
         abnorm_pred = model.predict(X_abn)
 
-        print("Accuracy score is (normal): " + accuracy_score(0, normal_pred))
+        print("Accuracy score is (normal):", accuracy_score(0, normal_pred))
         self.assertGreaterEqual(accuracy_score(0, normal_pred), 0.6)
-        print("Accuracy score is (abnorm): " + accuracy_score(1, abnorm_pred))
+        print("Accuracy score is (abnorm):", accuracy_score(1, abnorm_pred))
         self.assertGreaterEqual(accuracy_score(0, abnorm_pred), 0.6)
-
 
 
 if __name__ == '__main__':
