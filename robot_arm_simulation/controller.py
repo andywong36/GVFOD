@@ -13,12 +13,13 @@ class PIDControlRobotArm(RobotArmDynamics):
         self.max_speed = max_speed
         self.accel = accel
 
-        self.arm_angle_a = self.data["Angle"][self.data["Time"].between(18, 19.9)].mean()
-        self.arm_angle_b = self.data["Angle"][self.data["Time"].between(8, 9.9)].mean()
+        super().__init__(**kwargs)
 
         self._init_setpoint_times()
 
-        super().__init__(**kwargs)
+    @property
+    def y0(self):
+        return np.hstack([super().y0, 0])
 
     def _init_setpoint_times(self):
         """Assumes a period of 20 seconds"""

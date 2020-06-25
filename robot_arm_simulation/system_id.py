@@ -55,16 +55,20 @@ class RobotArmDynamics:
     data = pd.read_csv(r"test_data.csv")
     data.columns = ["Time", "Run", "Direction", "Angle", "Torque", "Tension"]
 
-    @staticmethod
-    def _normal_force(T_m_i, T_i_a, T_a_m, angle_m, angle_i, angle_a):
+    def normal_force(self, T_m_i, T_i_a, T_a_m):
+        angle_m, angle_i, angle_a = self.angle_m, self.angle_i, self.angle_a
         # Calculates the normal force applied on the belt by the pulley (used for calculating friction)
         Nm = math.sqrt(T_a_m ** 2 + T_m_i ** 2 - 2 * T_a_m * T_m_i * math.cos(math.pi - angle_m))
         Ni = math.sqrt(T_m_i ** 2 + T_i_a ** 2 - 2 * T_m_i * T_i_a * math.cos(math.pi - angle_i))
         Na = math.sqrt(T_i_a ** 2 + T_a_m ** 2 - 2 * T_i_a * T_a_m * math.cos(math.pi - angle_a))
         return Nm, Ni, Na
 
-    @staticmethod
-    def _tensions(y, base_T, d_1, d_2, d_3, k_1, k_2, k_3, r_a, r_i, r_m):
+    def tensions(self, y):
+        base_T = self.base_T
+        k_1, k_2, k_3 = self.k_1, self.k_2, self.k_3
+        d_1, d_2, d_3 = self.d_1, self.d_2, self.d_3
+        r_m, r_i, r_a = self.r_m, self.r_i, self.r_a
+
         T_m_i = base_T + k_1 * (y[2] * r_i - y[0] * r_m) + d_1 * (y[3] * r_i - y[1] * r_m)
         T_i_a = base_T + k_2 * (y[4] * r_a - y[2] * r_i) + d_2 * (y[5] * r_a - y[3] * r_i)
         T_a_m = base_T + k_3 * (y[0] * r_m - y[4] * r_a) + d_3 * (y[1] * r_m - y[5] * r_a)
@@ -72,6 +76,14 @@ class RobotArmDynamics:
         T_i_a = max(T_i_a, 0)
         T_a_m = max(T_a_m, 0)
         return T_m_i, T_i_a, T_a_m
+
+    @property
+    def y0(self):
+        y0 = np.zeros(6)
+        y0[4] = self.arm_angle_a
+        y0[0] = self.r_a * self.arm_angle_a / self.r_m
+        y0[2] = self.r_a * self.arm_angle_a / self.r_i
+        return y0
 
     def __init__(self, use_optimized_params=False, **kwargs):
         """
@@ -165,6 +177,9 @@ class RobotArmDynamics:
             fill_value="extrapolate",
         )
 
+        self.arm_angle_a = self.data["Angle"][self.data["Time"].between(18, 19.9)].mean()
+        self.arm_angle_b = self.data["Angle"][self.data["Time"].between(8, 9.9)].mean()
+
     def ode(self, time, y):
         """
         The dynamics of the robot arm system. See __init__ docs for more information.
@@ -181,14 +196,13 @@ class RobotArmDynamics:
         # torque = 0
 
         # Calculate tensions
-        T_m_i, T_i_a, T_a_m = self._tensions(y, self.base_T, self.d_1, self.d_2, self.d_3, self.k_1, self.k_2, self.k_3,
-                                             self.r_a, self.r_i, self.r_m)
+        T_m_i, T_i_a, T_a_m = self.tensions(y)
 
         # Accounting for non-level surfaces
         T_arm = self.slope1 * math.sin(y[4]) + self.slope2 * math.cos(y[4])
 
         # The normal force is calculated using cosine law
-        Nm, Ni, Na = self._normal_force(T_m_i, T_i_a, T_a_m, self.angle_m, self.angle_i, self.angle_a)
+        Nm, Ni, Na = self.normal_force(T_m_i, T_i_a, T_a_m)
 
         # Derivatives of positions and velocities (velocity and acceleration)
         dy = np.empty_like(y)
@@ -239,9 +253,8 @@ class RobotArmDynamics:
         # f'(x) = 2 * a * a' + 2 * b * b' - 2 * cos(phi) * (a' * b + a * b')
         # We have all the a', b' available.
 
-        T_m_i, T_i_a, T_a_m = self._tensions(y, self.base_T, self.d_1, self.d_2, self.d_3, self.k_1, self.k_2, self.k_3,
-                                             self.r_a, self.r_i, self.r_m)
-        Nm, Ni, Na = self._normal_force(T_m_i, T_i_a, T_a_m, self.angle_m, self.angle_i, self.angle_a)
+        T_m_i, T_i_a, T_a_m = self.tensions(y)
+        Nm, Ni, Na = self.normal_force(T_m_i, T_i_a, T_a_m)
 
         # Gradients of normal forces
         dNm = ((T_a_m * dT_a_m
