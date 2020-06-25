@@ -105,4 +105,4 @@ if __name__ == "__main__":
         Si = main()
 
     else:
-        visualize("sensitivity_results_o2.pkl")
+        visualize("sensitivity_results_o1.pkl")

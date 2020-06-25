@@ -24,13 +24,13 @@ class RobotArmDynamics:
         "I_a": [0.7906157135035278],
         "I_i": [0.000008558186054715617],
         "J_m": [0.00013108554681123485],
-        "base_T": [110.87862925115707],
-        "f1a": [1.4129360140919265e-7],
-        "f1i": [0.000007626581489053154],
-        "f1m": [0.0006634106668629292],
-        "f2a": [0.00007716518208965043],
-        "f2i": [0.00003074601549551998],
-        "f2m": [0.00004162790299003434],
+        "base_T": [110.87862925115707 * 1.44],
+        "f1a": [1.4129360140919265e-7 / 1.44],
+        "f1i": [0.000007626581489053154 / 1.44],
+        "f1m": [0.0006634106668629292 / 1.44],
+        "f2a": [0.00007716518208965043 / 1.44],
+        "f2i": [0.00003074601549551998 / 1.44],
+        "f2m": [0.00004162790299003434 / 1.44],
         "l_1": [0.12650016515777088],
         "l_2": [0.15193752939477279],
         "l_3": [0.17729639030823133],
@@ -276,3 +276,38 @@ class RobotArmDynamics:
         jac[5, :] = 1 / self.I_a * ((dT_a_m - dT_i_a) * self.r_a + dfrictiona)
         # jac[4:6, :] = 0
         return jac
+
+def objective(x, tight_tol=True, argnames=None):
+    import time
+
+    from scipy import integrate
+    from hyperopt import STATUS_OK
+
+    """ Same function signature as ode_const(). Used to define the objective for hyperopt """
+    kwargs = x
+    model = RobotArmDynamics(**kwargs)
+
+    y0 = np.array([5.33249302e-01, 0, 5.33249314e-01, 0, 0.344213835078322, 0])
+
+    start = time.time()
+    tol_params = dict() if tight_tol else {"rtol": 1E-2, "atol": 1E-4}
+    results = integrate.solve_ivp(
+        fun=model.ode,
+        t_span=(0, 40),
+        y0=y0,
+        t_eval=model.data["Time"],
+        method='LSODA',
+        jac=model.J,
+        **tol_params,
+    )
+
+    return {
+        # Main results
+        'loss': np.sum((results.y[4, :] - model.data["Angle"].values) ** 2),
+        'status': STATUS_OK,
+
+        # Other results
+        'start_time': start,
+        'elapsed': time.time() - start,
+        # 'responses': results.y.tostring()
+    }

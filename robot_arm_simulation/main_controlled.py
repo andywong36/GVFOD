@@ -11,7 +11,7 @@ if __name__ == "__main__":
     data = PIDControlRobotArm.data
     kwargs = PIDControlRobotArm.optimized_params
 
-    model = PIDControlRobotArm(K_p=10, T_i=2, T_d=0.2, **kwargs)
+    model = PIDControlRobotArm(K_p=30, T_i=0.8, T_d=0.1, **kwargs)
 
     # Initial conditions: where the displacement of each pulley is equal (0 net tension), and all 3 pulley are
     # stationary
@@ -42,7 +42,7 @@ if __name__ == "__main__":
 
     setpoint_f = model.setpoint
     # Plot results
-    fig, axs = plt.subplots(2, 1)
+    fig, axs = plt.subplots(3, 1)
     axs[0].plot(data["Time"], data["Angle"], 'r', label="Empirical Data")
     axs[0].plot(data["Time"], results.y[4, :], 'b', label=f"Process Value")
     axs[0].plot(data["Time"], data["Time"].map(setpoint_f), label=f"Setpoint")
@@ -55,6 +55,14 @@ if __name__ == "__main__":
     axs[1].plot(data["Time"], results.y[5, :], 'b', label="Process Value Velocity")
     axs[1].legend()
     axs[1].set(ylabel="Velocity (rad/s)", xlabel="Time (s)")
+
+    axs[2].plot(data["Time"], data["Torque"], 'r', label="Empirical Torque")
+    axs[2].plot(data["Time"], list(map(model.control,
+        data["Time"], results.y[4], results.y[5], results.y[6]
+    )), 'b', label="Simulated Torque")
+    axs[2].legend()
+    axs[2].set(ylabel="Torque (Nm)", xlabel="Time (s)")
+
 
     print("The loss is {}".format(
         np.sum((results.y[4, :] - data["Angle"].values) ** 2)
