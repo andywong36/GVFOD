@@ -94,6 +94,25 @@ def sweep_tensions():
 
     return data_tensions
 
+def _eval_stiffness(EA):
+    return get_data(n_periods=2, EA=EA)
+
+
+def sweep_stiffness():
+    pool = Pool()
+
+    stiffnesses = np.linspace(10000, 200000, 20)
+    results = pool.imap(_eval_stiffness, stiffnesses)
+
+    data_stiffnesses = {}
+    for EA, res in zip(stiffnesses, results):
+        data_stiffnesses[EA] = res
+
+    pool.close()
+    pool.join()
+
+    return data_stiffnesses
+
 
 def plot_sweep(data_dict: dict, param="Parameter Name"):
     """ Takes a dictionary of different
@@ -128,13 +147,20 @@ def plot_sweep(data_dict: dict, param="Parameter Name"):
     plt.colorbar(m, cax=axcm)
     axcm.set(title=param)
 
-    plt.tight_layout()
+    figManager = plt.get_current_fig_manager()
+    figManager.window.showMaximized()
+
     plt.show()
+    plt.tight_layout()
+
 
 
 if __name__ == "__main__":
     normal_data = get_data()
     print(normal_data)
 
-    data_tensions = sweep_tensions()
-    plot_sweep(data_tensions, "Base Tension (N)")
+    # data_tensions = sweep_tensions()
+    # plot_sweep(data_tensions, "Base Tension (N)")
+
+    data_stiffnesses = sweep_stiffness()
+    plot_sweep(data_stiffnesses, "Stiffness EA (N)")
