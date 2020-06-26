@@ -113,6 +113,43 @@ def sweep_stiffness():
 
     return data_stiffnesses
 
+def _eval_f1a(f1a):
+    return get_data(n_periods=2, f1a=f1a)
+
+
+def sweep_f2a():
+    pool = Pool()
+
+    frictions = np.linspace(0.00007716518208965043 / 1.44 / 2, 0.00007716518208965043 / 1.44 * 10, 20)
+    results = pool.imap(_eval_f1a, frictions)
+
+    data_frictions = {}
+    for f2a, res in zip(frictions, results):
+        data_frictions[f2a] = res
+
+    pool.close()
+    pool.join()
+
+    return data_frictions
+
+def _eval_slope(slope1):
+    return get_data(n_periods=2, slope1=slope1)
+
+
+def sweep_slope():
+    pool = Pool()
+
+    slopes = np.linspace(-0.23723147775251083 * 2, 0, 20)
+    results = pool.imap(_eval_slope, slopes)
+
+    data_slopes = {}
+    for slope, res in zip(slopes, results):
+        data_slopes[slope] = res
+
+    pool.close()
+    pool.join()
+
+    return data_slopes
 
 def plot_sweep(data_dict: dict, param="Parameter Name"):
     """ Takes a dictionary of different
@@ -162,5 +199,11 @@ if __name__ == "__main__":
     # data_tensions = sweep_tensions()
     # plot_sweep(data_tensions, "Base Tension (N)")
 
-    data_stiffnesses = sweep_stiffness()
-    plot_sweep(data_stiffnesses, "Stiffness EA (N)")
+    # data_stiffnesses = sweep_stiffness()
+    # plot_sweep(data_stiffnesses, "Stiffness EA (N)")
+
+    # data_frictions = sweep_f2a()
+    # plot_sweep(data_frictions, "f2a (unitless)")
+
+    data_slope = sweep_slope()
+    plot_sweep(data_slope, "slope (Nm)")
