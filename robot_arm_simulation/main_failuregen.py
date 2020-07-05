@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 from scipy.integrate import solve_ivp
 
-from controller import PIDControlRobotArm
+from controller import PIDControlRobotArm, PIDDisturbRobotArm
 
 
 def f_torque_from_state(model):
@@ -43,7 +43,9 @@ def get_data(n_periods=10, **kwargs):
 
     params = PIDControlRobotArm.optimized_params.copy()
     params.update(kwargs)
-    model = PIDControlRobotArm(K_p=30, T_i=0.8, T_d=0.1, **params)
+    # model = PIDControlRobotArm(K_p=30, T_i=0.8, T_d=0.1, **params)
+    model = PIDDisturbRobotArm(K_p=30, T_i=0.8, T_d=0.1, sigma=0.01, l=0.01, **params)
+    # model = PIDDisturbRobotArm(K_p=30, T_i=0.8, T_d=0.1, use_GP=False, sigma=0.05, l=0., **params)
 
     t_eval = np.arange(0, 20 * n_periods, 0.01)
 
@@ -94,6 +96,7 @@ def sweep_tensions():
 
     return data_tensions
 
+
 def _eval_stiffness(EA):
     return get_data(n_periods=2, EA=EA)
 
@@ -112,6 +115,7 @@ def sweep_stiffness():
     pool.join()
 
     return data_stiffnesses
+
 
 def _eval_f1a(f1a):
     return get_data(n_periods=2, f1a=f1a)
@@ -132,6 +136,7 @@ def sweep_f2a():
 
     return data_frictions
 
+
 def _eval_slope(slope1):
     return get_data(n_periods=2, slope1=slope1)
 
@@ -150,6 +155,7 @@ def sweep_slope():
     pool.join()
 
     return data_slopes
+
 
 def plot_sweep(data_dict: dict, param="Parameter Name"):
     """ Takes a dictionary of different
@@ -189,7 +195,6 @@ def plot_sweep(data_dict: dict, param="Parameter Name"):
 
     plt.show()
     plt.tight_layout()
-
 
 
 if __name__ == "__main__":

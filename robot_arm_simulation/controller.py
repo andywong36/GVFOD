@@ -2,6 +2,7 @@ from functools import partial
 import numpy as np
 
 from system_id import RobotArmDynamics
+from utils import GP, Noise
 
 
 class PIDControlRobotArm(RobotArmDynamics):
@@ -9,6 +10,11 @@ class PIDControlRobotArm(RobotArmDynamics):
         self.K_p = K_p
         self.K_i = self.K_p / T_i
         self.K_d = self.K_p * T_d
+
+        # Params for control
+        self.y = None
+        self.dy = None
+        self.E = None
 
         self.max_speed = max_speed
         self.accel = accel
@@ -44,13 +50,16 @@ class PIDControlRobotArm(RobotArmDynamics):
             The derivative of y with respect to time. A vector of length 9
         """
 
-        self.torque = partial(self.control, y=y[4], dy=y[5], E=y[6])
+        self.y, self.dy, self.E = y[4:7]
 
         dy = np.empty_like(y)
         dy[:6] = super().ode(time, y[:6])
         dy[6] = self.setpoint(time) - y[4]
 
         return dy
+
+    def torque(self, time):
+        return self.control(time, y=self.y, dy=self.dy, E=self.E)
 
     def setpoint(self, time):
         # Trapezoidal velocity profile.
@@ -128,3 +137,22 @@ class PIDControlRobotArm(RobotArmDynamics):
         dyr = self.dsetpoint(t)
         yr = self.setpoint(t)
         return self.K_d * (dyr - dy) + self.K_p * (yr - y) + self.K_i * E
+
+
+class PIDDisturbRobotArm(PIDControlRobotArm):
+    def __init__(self, sigma, l, use_GP=True, **kwargs):
+        self.sigma = sigma
+        self.l = l
+        self.use_GP = use_GP
+
+        self.Noise = Noise(self.sigma)
+        self.GP = GP(sigma=self.sigma, l=self.l)
+
+        super().__init__(**kwargs)
+
+    def torque(self, time):
+        if self.use_GP:
+            ftdisturb = self.GP.gp(seed=int(time // 20 - 97 * self.slope1))
+        else:
+            ftdisturb = self.Noise.noise()
+        return super().torque(time) + ftdisturb(time % 20 / 20)
