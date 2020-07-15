@@ -34,7 +34,7 @@ def linplot(df: pd.DataFrame, col: str):
 
     import matplotlib.pyplot as plt
     from sklearn.linear_model import LinearRegression
-    plt.scatter(df[col], df["loss"])
+    plt.errorbar(x=df[col], y=df["loss"], yerr=np.sqrt(df["loss_var"]), fmt="x", ls='none')
 
     model = LinearRegression().fit(df[col].values.reshape(-1, 1), df["loss"])
     x_line = np.linspace(df[col].min(), df[col].max(), 10).reshape(-1, 1)

@@ -136,7 +136,7 @@ def test():
                         dataframe.loc[train_size, model] = [score]
 
     for outlier in results:
-        results[outlier].to_pickle(f"experiment_comparisons/trainsize_{outlier}_results.df")
+        results[outlier].to_pickle(f"exp_gvfod/trainsize_{outlier}_results.df")
 
     print(f"Time elapsed: {time.time() - start}")
 
@@ -235,8 +235,8 @@ def plot_results(filepath, linelabel=True):
 def _plotall():
     for file in ["highT", "loose_l1", "loose_l2", "sandy", "tight"]:
         plt.figure(figsize=(16, 9))
-        plot_results("experiment_comparisons/trainsize_" + file + "_results.df")
-        plt.savefig("experiment_comparisons/f1/plot" + file + ".png")
+        plot_results("exp_gvfod/trainsize_" + file + "_results.df")
+        plt.savefig("exp_gvfod/f1/plot" + file + ".png")
     plt.show()
 
 
