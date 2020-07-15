@@ -8,7 +8,7 @@ from system_id import *
 
 if __name__ == "__main__":
     kwargs = RobotArmDynamics.optimized_params
-    model = RobotArmDynamics(**kwargs)
+    model = RobotArmDynamics(use_extended_data=True, **kwargs)
 
     # Initial conditions: where the displacement of each pulley is equal (0 net tension), and all 3 pulley are
     # stationary
@@ -23,7 +23,7 @@ if __name__ == "__main__":
     start = time.time()
     results = integrate.solve_ivp(
         fun=model.ode,
-        t_span=(0, 40),
+        t_span=(0, model.data["Time"].max()),
         y0=y0,
         t_eval=model.data["Time"],
         method='LSODA',
@@ -40,6 +40,6 @@ if __name__ == "__main__":
     plt.xlabel("Time (s)")
     plt.title("Simulated Data with Global Optimization")
 
-    print("The loss is {}".format(
+    print("The training loss is {}".format(
         np.sum((results.y[4, :] - model.data["Angle"].values) ** 2)
     ))
