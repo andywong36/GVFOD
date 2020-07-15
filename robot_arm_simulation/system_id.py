@@ -85,7 +85,7 @@ class RobotArmDynamics:
         y0[2] = self.r_a * self.arm_angle_a / self.r_i
         return y0
 
-    def __init__(self, use_optimized_params=False, **kwargs):
+    def __init__(self, use_optimized_params=False, use_extended_data=False, **kwargs):
         """
         Sets up the ordinary differential equation describing the dynamics of the robot arm.
         After initialization, there will be an ode method ode(self, time, y) that describes
@@ -131,7 +131,7 @@ class RobotArmDynamics:
             l_2: length of belt 2
             l_3: length of belt 3
             EA: Young's modulus * cross sectional area of belt. Units of N
-            C_L: Dampening per unit length. Units of N/(m/s) / m = Ns/m^2
+            C_L: Dampening per unit length. Units of N/(m/s) * m = Ns
             base_T: Static / equilibrium tension of the belt.
             slope1: same as above
             slope2: same as above
@@ -159,6 +159,12 @@ class RobotArmDynamics:
             self.__dict__.update({k: v[0] for k, v in self.optimized_params.items()})
         self.__dict__.update(kwargs)  # Now all the parameters can be used with self.k_1 or self.k_2 etc...
 
+        # To compare training and testing data, extended testing data is availabe
+        if use_extended_data:
+            self.data_ext = pd.read_csv("test_data_extended.csv")[:8000]
+            self.data_ext.columns = self.data.columns
+            self.data = self.data_ext
+
         self.angle_m = get_angle(self.l_1, self.l_3, self.l_2)
         self.angle_i = get_angle(self.l_1, self.l_2, self.l_3)
         self.angle_a = get_angle(self.l_2, self.l_3, self.l_1)
@@ -167,7 +173,7 @@ class RobotArmDynamics:
         self.k_1, self.k_2, self.k_3 = (self.EA / self.l_1, self.EA / self.l_2, self.EA / (self.l_3 * (2 / 3)))
 
         # Calculate the dampening of the 3 belt lengths (kg/s = Ns/m)
-        self.d_1, self.d_2, self.d_3 = (self.C_L * self.l_1, self.C_L * self.l_2, self.C_L * (self.l_3 * 2 / 3))
+        self.d_1, self.d_2, self.d_3 = (self.C_L / self.l_1, self.C_L / self.l_2, self.C_L / (self.l_3 * 2 / 3))
 
         # Set up interpolation function for torque calculated from data (can be overwritten with a PID controller)
         self.torque_interpolator = interpolate.interp1d(
