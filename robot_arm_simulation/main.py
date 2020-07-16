@@ -33,13 +33,22 @@ if __name__ == "__main__":
     print("Done")
 
     # Plot results
-    plt.plot(model.data["Time"], model.data["Angle"], 'r', label="True Angle")
-    plt.plot(model.data["Time"], results.y[4, :], 'b', label=f"Calculated Angle")
-    plt.legend()
-    plt.ylabel("Angle (Radians)")
-    plt.xlabel("Time (s)")
-    plt.title("Simulated Data with Global Optimization")
+    f, ax = plt.subplots(figsize=(12, 4))
+    ax.plot(model.data["Time"], model.data["Angle"], 'r', label="True Angle")
+    ax.plot(model.data["Time"], results.y[4, :], 'b', label=f"Calculated Angle")
+    ax.legend()
+    ax.set(ylabel="Angle (Radians)", xlabel="Time (s)", title="Simulated Data with Global Optimization")
+
+    # Delineate train and test results
+    ax.axvline(40)
+    ax.text(15, 0.2, "Training")
+    ax.text(60, 0.2, "Testing")
+    ax.set(ylim=(0.1, 2.295))
 
     print("The training loss is {}".format(
-        np.sum((results.y[4, :] - model.data["Angle"].values) ** 2)
+        np.sum((results.y[4, :4000] - model.data["Angle"].values[:4000]) ** 2)
+    ))
+
+    print("The testing loss is {}".format(
+        np.sum((results.y[4, 4000:] - model.data["Angle"].values[4000:]) ** 2)
     ))
