@@ -152,7 +152,7 @@ class PIDDisturbRobotArm(PIDControlRobotArm):
 
     def torque(self, time):
         if self.use_GP:
-            ftdisturb = self.GP.gp(seed=int(time // 20 - 97 * self.slope1))
+            ftdisturb = self.GP.gp(seed=int(time // 20))
         else:
             ftdisturb = self.Noise.noise()
         return super().torque(time) + ftdisturb(time % 20 / 20)

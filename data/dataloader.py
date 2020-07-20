@@ -8,7 +8,8 @@ def get_robot_arm_data(return_class_labels=False):
     Returns multiple sensor data for outlier detection
 
     Returns:
-        Tuple(X: np.ndarray, y: np.ndarray): X contains an array of both normal and abnormal data, where each row has
+        Tuple(X: np.ndarray (6000, n_periods), y: np.ndarray (n_periods, ):
+            X contains an array of both normal and abnormal data, where each row has
             length n * k, where n is the length of each time series, and k is the number of sensors. X has m of these
             rows, each corresponding to one period of robot arm operation. y is the outlier
             label (int)
