@@ -1,7 +1,12 @@
 import setuptools
+from setuptools import Extension
+import numpy as np
 
 with open("README.md", "r") as fh:
     long_description = fh.read()
+
+extmodule = Extension('newclearn', sources=['gvfod/newclearn/newclearn.c'],
+                      include_dirs = [np.get_include(),])
 
 setuptools.setup(
     name="GVFOD-Andy-Wong",  # Replace with your own username
@@ -25,4 +30,5 @@ setuptools.setup(
         "Operating System :: OS Independent",
     ],
     python_requires='>=3.7',
+    ext_modules=[extmodule],
 )
