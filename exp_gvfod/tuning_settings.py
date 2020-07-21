@@ -189,3 +189,24 @@ markov_exp = Experiment(
         "transform": None,
     }
 )
+
+gvfod_exp = Experiment(
+    clf=getattr(importlib.import_module("gvfod"), "GVFOD"),
+    clfname="GVFOD",
+    metric="f1",
+    runs=100,
+    parameters={
+        "n_sensors": 3,
+        "contamination": 0.05,
+        "divisions": [
+            hyperopt.pyll.scope.int(hp.quniform("division0", 1, 32, 1)),
+            hyperopt.pyll.scope.int(hp.quniform("division1", 1, 32, 1)),
+            hyperopt.pyll.scope.int(hp.quniform("division2", 1, 32, 1)),
+        ],
+        "discount_rate": hp.uniform("discount_rate", 0, 1),
+        "learn_rate": hp.uniform("learn_rate", 0, 1),
+        "lamda": hp.uniform("lamda", 0, 1),
+        "beta": hyperopt.pyll.scope.int(hp.quniform("beta", 2, 1000, 2)),
+        "transform": None,
+    }
+)

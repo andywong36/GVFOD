@@ -11,6 +11,8 @@ class MyTestCase(unittest.TestCase):
             if not isinstance(getattr(tuning_settings, k),
                               tuning_settings.Experiment):
                 continue
+            if getattr(tuning_settings, k).clfname is not "GVFOD":
+                continue
             print("Testing {}".format(k))
             p = Process(target=main,
                         args=(k, ),

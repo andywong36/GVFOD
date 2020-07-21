@@ -21,7 +21,7 @@ from pyod.models.abod import ABOD
 from pyod.models.hbos import HBOS
 from pyod.models.pca import PCA
 from markov.markov import Markov
-from GVFOD.gvfod.RLOD import RLOD
+from gvfod import GVFOD
 
 import data.dataloader as dtl
 import data.model_selection as ms
@@ -37,9 +37,9 @@ algorithms = {
     "Histogram-based OD": HBOS(n_bins=10, alpha=0.1, tol=0.5, **common_params),
     "Principle Components": PCA(n_components=9, **common_params),
     "Markov Chain": Markov(n_sensors=3, divisions=6, resample=True, sample_period=20, **common_params),
-    "Reinforcement-Learning Outlier Detection": RLOD(n_sensors=3, divisions=[4] * 3, wrap_idxs=None, int_idxs=None,
-                                                     numtilings=32, state_size=2048, discount_rate=0.985,
-                                                     learn_rate=0.005, lamda=0.25, beta=200, **common_params)
+    "Reinforcement-Learning Outlier Detection": GVFOD(n_sensors=3, divisions=[4] * 3, wrap_idxs=None, int_idxs=None,
+                                                      numtilings=32, state_size=2048, discount_rate=0.985,
+                                                      learn_rate=0.005, lamda=0.25, beta=200, **common_params)
 }
 uses_pca = [
     "Histogram-based OD",

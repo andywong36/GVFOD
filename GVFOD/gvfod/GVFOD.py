@@ -12,12 +12,32 @@ from .surprise import TDLambdaGVF
 from . import clearn
 
 
-class RLOD(BaseDetector):
+class GVFOD(BaseDetector):
     def __init__(self, n_sensors: int, divisions: List[int],
-                 wrap_idxs: Union[None, List[int]] = None, int_idxs: List[int] = None, numtilings: int = 32,
+                 wrap_idxs: Union[None, List[int]] = None, int_idxs: Union[None, List[int]] = None,
+                 numtilings: int = 32,
                  state_size=4096, discount_rate: float = 0., learn_rate: float = 0.0,
                  lamda: float = 0., beta: int = 10,
                  contamination: float = 0.10):
+        """ GVFOD is an algorithm that detects anomalous time series, with an interface similar to PyOD
+
+        Args:
+            n_sensors: The number of sensors in the data. Input data X should have a shape of (n_samples,
+                n_sensors * period). Hence, X.shape[1] must be divisible by n_sensors
+            divisions: The number of divisions to discretize each sensor's data. The smallest resolution that the tiler
+                can handle is divisions[sensor] * num_tilings. The data is min-max scaled to required divisions.
+            wrap_idxs: The indices where the data should be wrapped (for example, wrap angles at every 360 (or 2*pi)).
+                The "period" used for wrapping will be the corresponding element in divisions. Hence, wrap_idxs are not
+                min-max scaled.
+            int_idxs: The indices of discrete variables
+            numtilings: Sub-discretizations. From tiling software.
+            state_size: Tiling software parameter
+            discount_rate: \gamma, in standard RL notation from Sutton and Barto (2018)
+            learn_rate: float between (0, 1). It will be divided by numtilings, so \alpha = learn_rate / numtilings
+            lamda: the trace decay parameter from Sutton and Barto (2018)
+            beta: the bandwidth for calculating UDE (White, 2015)
+            contamination: see PyOD
+        """
         self.n_sensors = n_sensors
         assert len(divisions) == self.n_sensors
 
@@ -100,7 +120,6 @@ class RLOD(BaseDetector):
         averaged = [np.mean(arr) for arr in np.vsplit(surprise, n_samples)]
         self.decision_scores_ = np.array(averaged)
         self._process_decision_scores()
-        pass
 
     def tiling(self, X_scaled):
         phi = np.empty((len(X_scaled), self.numtilings), dtype=int)
