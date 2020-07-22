@@ -3,6 +3,8 @@
 #include <numpy/arrayobject.h>
 #include "newclearn.h"
 
+#define NPY_NO_DEPRECATED_API NPY_API_VERSION
+
 static PyObject *
 newclearn(PyObject *self, PyObject *args, PyObject *kwargs)
 {
@@ -176,7 +178,7 @@ static struct PyModuleDef clearnMod =
 PyMODINIT_FUNC
 PyInit_newclearn(void)
 {
-    PyMODINIT_FUNC initret = PyModule_Create(&clearnMod);
+    PyObject *initret = PyModule_Create(&clearnMod);
     import_array();
     return initret;
 }
