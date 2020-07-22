@@ -5,6 +5,23 @@
 
 #define NPY_NO_DEPRECATED_API NPY_API_VERSION
 
+PyDoc_STRVAR(clearn_doc,
+             "Built in, cross-platform newclearn method.\n"
+             "\n"
+             "All the input arrays need to be C Arrays in Numpy. \n"
+             "\n"
+             "kwargs:\n"
+             "   phi: np.ndarray of shape (nobs, ntilings), of dtype np.uintp \n"
+             "   y: np.ndarray of shape (nobs, ), dtype np.double \n"
+             "   tde: np.ndarray of shape (nobs, ), dtype np.double. This array will be overwritten. \n"
+             "   w: np.ndarray of shape (nweights, ), dtype np.double. This array will be overwritten if alpha > 0. \n"
+             "   z: np.ndarray of shape (nweights, ), dtype np.double. This array will be overwritten if alpha > 0. \n"
+             "   gamma: float, the discount rate \n"
+             "   lambda_: float, the trace decay parameter \n"
+             "   alpha: float, the step-size \n"
+             "Returns:\n"
+             "   0 on success.");
+
 static PyObject *
 newclearn(PyObject *self, PyObject *args, PyObject *kwargs)
 {
@@ -48,7 +65,6 @@ try_:
     PyArray_INCREF(tde);
     PyArray_INCREF(w);
     PyArray_INCREF(z);
-    /* More of your code to do stuff with obj_a. */
 
     /* Check datatypes */
     if (PyArray_TYPE(phi) != NPY_UINTP)
@@ -136,7 +152,7 @@ try_:
     printf("The first 3 elements of tde are now %f, %f, %f\n", ctde[0], ctde[1], ctde[2]);
 
     /* Return object creation, ret must be a new reference. */
-    ret = PyBool_FromLong(1L);
+    ret = PyBool_FromLong(0L);
     if (!ret)
     {
         PyErr_SetString(PyExc_ValueError, "Ooops again.");
@@ -164,15 +180,15 @@ finally:
 static struct PyMethodDef methods[] =
     {
         {"newclearn", newclearn, METH_VARARGS | METH_KEYWORDS,
-         "Built in, cross-platform clearn method"},
+         clearn_doc},
         {NULL, NULL, 0, NULL}};
 
 static struct PyModuleDef clearnMod =
     {
         PyModuleDef_HEAD_INIT,
-        "newclearn",                              /* name of module */
+        "newclearn",                     /* name of module */
         "New cross-platform TD(lambda)", /* module documentation, may be NULL */
-        -1,                                        /* size of per-interpreter state of the module, or -1 if the module keeps state in global variables. */
+        -1,                              /* size of per-interpreter state of the module, or -1 if the module keeps state in global variables. */
         methods};
 
 PyMODINIT_FUNC
