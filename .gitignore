@@ -203,9 +203,14 @@ fabric.properties
 
 *__pycache__/*
 *.py~
-*.dat
-*.df
+
+# VSCODE files
+*.vscode/*
+*.idea/*
+
 
 # Specific files
 data/data_to_pandas.py
 data/pickles/machine*
+*.dat
+*.df
