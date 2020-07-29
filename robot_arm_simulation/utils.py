@@ -82,24 +82,23 @@ class GP:
         return f
 
 
-def test():
+def visualize_random_functions():
+    """ Plots the difference between GP vs white noise. """
+
     import matplotlib.pyplot as plt
     gp = GP(1, 0.01)
     x = np.linspace(0, 1, 2000)
 
-    plt.figure("Gaussian Process")
+    fig, axs = plt.subplots(2, 1, figsize=(12, 6))
     for s in range(5):
         fgp = gp.gp(seed=s)
         y = np.array([fgp(xi) for xi in x])
-        plt.plot(x, y)
+        axs[0].plot(x, y)
+    axs[0].set(xlabel=r'$x$', ylabel=r'$y=f(x)$    $\sigma=1$, $l=0.01$', title="5 Random Samples of a Gaussian Process")
 
-    plt.figure("White Noise")
     noise = Noise(1)
     for s in range(5):
         fn = noise.noise()
         y = np.array([fn(xi) for xi in x])
-        plt.plot(x, y)
-
-
-if __name__ == "__main__":
-    test()
+        axs[1].plot(x, y)
+    axs[1].set(xlabel=r'$x$', ylabel=r'$y=f(x)$    $\sigma=1$', title="5 Random Samples of White Noise")
