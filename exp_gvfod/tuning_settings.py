@@ -1,15 +1,17 @@
 import importlib
 from collections import namedtuple
-from functools import reduce
 
 import hyperopt
 import numpy as np
 from hyperopt import hp as hp
 from sklearn import decomposition as decomp
 
+from exp_gvfod.tuning_utils import factors
+
 Experiment = namedtuple("ExperimentSettings",
                         ["clf", "clfname", "metric", "runs", "parameters"], )
 Experiment.__new__.__defaults__ = (None, None, "f1", 400, None)
+
 if_exp = Experiment(
     clf=getattr(importlib.import_module("pyod.models.iforest"), "IForest"),
     clfname="IForest",
@@ -31,6 +33,7 @@ if_exp = Experiment(
         ]
     ),
 )
+
 ocsvm_exp = Experiment(
     clf=getattr(importlib.import_module("pyod.models.ocsvm"), "OCSVM"),
     clfname="OCSVM",
@@ -66,6 +69,7 @@ ocsvm_exp = Experiment(
         ]
     )
 )
+
 lof_exp = Experiment(
     clf=getattr(importlib.import_module("pyod.models.lof"), "LOF"),
     clfname="LOF",
@@ -86,6 +90,7 @@ lof_exp = Experiment(
 
     )
 )
+
 abod_exp = Experiment(
     clf=getattr(importlib.import_module("pyod.models.abod"), "ABOD"),
     clfname="ABOD",
@@ -101,6 +106,7 @@ abod_exp = Experiment(
         ]
     )
 )
+
 kNN_exp = Experiment(
     clf=getattr(importlib.import_module("pyod.models.knn"), "KNN"),
     clfname="KNN",
@@ -126,6 +132,7 @@ kNN_exp = Experiment(
         ]
     )
 )
+
 hbos_exp = Experiment(
     clf=getattr(importlib.import_module("pyod.models.hbos"), "HBOS"),
     clfname="HBOS",
@@ -149,6 +156,7 @@ hbos_exp = Experiment(
         ]
     )
 )
+
 mcd_exp = Experiment(
     clf=getattr(importlib.import_module("pyod.models.mcd"), "MCD"),
     clfname="MCD",
@@ -165,15 +173,9 @@ pca_exp = Experiment(
      "n_components": hyperopt.pyll.scope.int(hp.quniform("n_components", 2, 50, 1)),
      "whiten": hp.choice("whiten", [False, True]),
      "weighted": hp.choice("weighted", [False, True]),
-     "transform": None
+             "transform": None
      },
 )
-
-
-def factors(n):
-    return reduce(list.__add__,
-                  ([i, n // i] for i in range(1, int(n ** 0.5) + 1) if n % i == 0))
-
 
 markov_exp = Experiment(
     clf=getattr(importlib.import_module("markov.markov"), "Markov"),

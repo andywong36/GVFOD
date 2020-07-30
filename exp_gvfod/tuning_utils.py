@@ -1,4 +1,5 @@
 import pickle
+from functools import reduce
 
 import numpy as np
 import pandas as pd
@@ -42,3 +43,8 @@ def linplot(df: pd.DataFrame, col: str):
     plt.plot(x_line, y_pred)
     plt.xlabel(col)
     plt.ylabel("loss")
+
+
+def factors(n):
+    return reduce(list.__add__,
+                  ([i, n // i] for i in range(1, int(n ** 0.5) + 1) if n % i == 0))
