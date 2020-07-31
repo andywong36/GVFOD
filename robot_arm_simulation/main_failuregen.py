@@ -7,6 +7,7 @@ Modified parameters:
     Stiffness EA (N)
     Friction f2a ()
     Slope slope1 (Nm)
+    Noise sigma (Nm)
 """
 from multiprocessing import Pool
 
@@ -73,7 +74,11 @@ def get_data(n_periods=10, **kwargs):
 
     # Set up robot arm model
     # model = PIDControlRobotArm(K_p=30, T_i=0.8, T_d=0.1, **params)
-    model = PIDDisturbRobotArm(K_p=30, T_i=0.8, T_d=0.1, sigma=0.01, l=0.01, **params)
+    if "sigma" not in params:
+        params["sigma"] = 0.01
+    if "l" not in params:
+        params["l"] = 0.01
+    model = PIDDisturbRobotArm(K_p=30, T_i=0.8, T_d=0.1, **params)
 
     # Solve system
     t_eval = np.arange(0, 20 * n_periods, 0.01)
@@ -213,6 +218,36 @@ def sweep_slope():
     return data_slopes
 
 
+def _eval_noise(args):
+    """ see sweep_noise() """
+    return get_data(n_periods=2, sigma=args[0], seed=args[1])
+
+
+def sweep_noise():
+    """ Evaluate a number of different disturbances (sigma).
+
+        Returns:
+            dict() of datasets, one for each sigma
+                key: the stdev of disturbance applied to the robot arm (sigma)
+                value: a pd.DataFrame of operational data,
+                    from get_data()
+        """
+    pool = Pool()
+
+    sigmas = np.linspace(0.001, 0.05, 10)
+    seeds = range(10)
+    results = pool.imap(_eval_noise, zip(sigmas, seeds))
+
+    data_sigmas = {}
+    for sigma, res in zip(sigmas, results):
+        data_sigmas[sigma] = res
+
+    pool.close()
+    pool.join()
+
+    return data_sigmas
+
+
 def plot_sweep(data_dict: dict, param="Parameter Name",
                nominal_val=None, optimal_val=None):
     """ Takes a dictionary of different
@@ -259,22 +294,27 @@ if __name__ == "__main__":
     normal_data = get_data()
     print(normal_data)
 
-    data_tensions = sweep_tensions()
-    plot_sweep(data_tensions, "Base Tension (N)",
-                   nominal_val=PIDControlRobotArm.base_T,
-                   optimal_val=PIDControlRobotArm.optimized_params["base_T"])
+    # data_tensions = sweep_tensions()
+    # plot_sweep(data_tensions, "Base Tension (N)",
+    #                nominal_val=PIDControlRobotArm.base_T,
+    #                optimal_val=PIDControlRobotArm.optimized_params["base_T"])
+    #
+    # data_stiffnesses = sweep_stiffness()
+    # plot_sweep(data_stiffnesses, "Stiffness EA (N)",
+    #            nominal_val=PIDControlRobotArm.EA,
+    #            optimal_val=PIDControlRobotArm.optimized_params["EA"])
+    #
+    # data_frictions = sweep_f2a()
+    # plot_sweep(data_frictions, "f2a (unitless)",
+    #            nominal_val=PIDControlRobotArm.f2a,
+    #            optimal_val=PIDControlRobotArm.optimized_params["f2a"])
+    #
+    # data_slope = sweep_slope()
+    # plot_sweep(data_slope, "slope (Nm)",
+    #            nominal_val=PIDControlRobotArm.slope1,
+    #            optimal_val=PIDControlRobotArm.optimized_params["slope1"])
 
-    data_stiffnesses = sweep_stiffness()
-    plot_sweep(data_stiffnesses, "Stiffness EA (N)",
-               nominal_val=PIDControlRobotArm.EA,
-               optimal_val=PIDControlRobotArm.optimized_params["EA"])
-
-    data_frictions = sweep_f2a()
-    plot_sweep(data_frictions, "f2a (unitless)",
-               nominal_val=PIDControlRobotArm.f2a,
-               optimal_val=PIDControlRobotArm.optimized_params["f2a"])
-
-    data_slope = sweep_slope()
-    plot_sweep(data_slope, "slope (Nm)",
-               nominal_val=PIDControlRobotArm.slope1,
-               optimal_val=PIDControlRobotArm.optimized_params["slope1"])
+    data_noise = sweep_noise()
+    plot_sweep(data_noise, r"Torque disturbance $\sigma$ (Nm)",
+               nominal_val=0.01,
+               optimal_val=0.0)

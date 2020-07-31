@@ -140,10 +140,11 @@ class PIDControlRobotArm(RobotArmDynamics):
 
 
 class PIDDisturbRobotArm(PIDControlRobotArm):
-    def __init__(self, sigma, l, use_GP=True, **kwargs):
+    def __init__(self, sigma, l, seed=0, use_GP=True, **kwargs):
         self.sigma = sigma
         self.l = l
         self.use_GP = use_GP
+        self.seed = seed
 
         self.Noise = Noise(self.sigma)
         self.GP = GP(sigma=self.sigma, l=self.l)
@@ -152,7 +153,7 @@ class PIDDisturbRobotArm(PIDControlRobotArm):
 
     def torque(self, time):
         if self.use_GP:
-            ftdisturb = self.GP.gp(seed=int(time // 20))
+            ftdisturb = self.GP.gp(seed=int(time // 20)+self.seed)
         else:
             ftdisturb = self.Noise.noise()
         return super().torque(time) + ftdisturb(time % 20 / 20)
