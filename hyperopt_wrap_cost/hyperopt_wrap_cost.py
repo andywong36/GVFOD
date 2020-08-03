@@ -1,5 +1,4 @@
 """
-Note from the user, Andy Wong:
 This code was copied from https://gist.github.com/hunse/247d91d14aaa8f32b24533767353e35d for use in my own research
 Originally developed by Eric Hunsberger https://gist.github.com/hunse
 

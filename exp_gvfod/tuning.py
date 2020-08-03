@@ -1,4 +1,4 @@
-from multiprocessing import Pool, RawArray
+from multiprocessing import Pool, RawArray, TimeoutError
 import pickle
 import sys
 from typing import Union, Type, Callable
@@ -10,7 +10,6 @@ import sklearn.preprocessing as pp
 
 from exp_gvfod.tuning_settings import *
 from data.dataloader import get_robot_arm_data
-from hyperopt_wrap_cost import wrap_cost
 
 global_data = {}
 
@@ -23,13 +22,13 @@ def init_data(X, X_shape, y, y_shape):
     global_data["y_shape"] = y_shape
 
 
-def main(exp_param, testrun=False):
+def main(exp_param, testrun=False, per_run_time=600):
     """ Finds the best hyperparameters for an outlier detection algorithm
 
     Saves the trials.trials object into "exp_gvfod/tuning_results/{}_hyperopt.dat".format(exp_param.clfname).
 
     Args:
-        exp_param: the name of a namedtuple("Experiment"): See tuning_settings.py, and the Experiment namedtuple.
+        exp_param (Experiment, str): the name of a namedtuple("Experiment"): See tuning_settings.py, and the Experiment namedtuple.
             fields of Experiment:
                 "clf": a subclass of pyod.models.base.BaseDetector
                 "clfname": string, name of "clf"
@@ -69,16 +68,8 @@ def main(exp_param, testrun=False):
         X_new = np.concatenate([X_new, X_train])
         y_new = np.concatenate([y_new, y_train])
 
-    X_new_raw = RawArray('d', X_new.shape[0] * X_new.shape[1])
-    y_new_raw = RawArray('i', y_new.shape[0])
-    X_new_raw_np = np.frombuffer(X_new_raw).reshape(X_new.shape)
-    y_new_raw_np = np.frombuffer(y_new_raw, dtype=np.int32).reshape(y_new.shape)
-    np.copyto(X_new_raw_np, X_new)
-    np.copyto(y_new_raw_np, y_new)
-
     # multiprocessing
     cv = 10
-    pool = Pool(processes=cv, initializer=init_data, initargs=[X_new_raw, X_new.shape, y_new_raw, y_new.shape])
 
     # Start the experiment - search for the best hyperparameters.
     trials = hyperopt.Trials()
@@ -88,17 +79,14 @@ def main(exp_param, testrun=False):
                         y=y_new,
                         cv=cv,
                         scoring=exp_param.metric,
-                        pool=pool)
-    best = hyperopt.fmin(fn=wrap_cost(objective, timeout=600),
+                        timeout=per_run_time)
+    best = hyperopt.fmin(fn=objective,
                          space=exp_param.parameters,
                          algo=hyperopt.tpe.suggest,
                          max_evals=exp_param.runs if not testrun else 5,
                          trials=trials)
     print("The best parameters are ", best)
     print(trials.trials)
-
-    pool.close()
-    pool.join()
 
     with open("exp_gvfod/tuning_results/{}_hyperopt.dat".format(exp_param.clfname), 'wb') as f:
         pickle.dump(trials.trials, f)
@@ -108,8 +96,8 @@ def main(exp_param, testrun=False):
 
 def cross_val_od_score(clf_cls: Type[pyod.models.base.BaseDetector], kwargs: dict,
                        X: np.ndarray, y: np.ndarray,
-                       cv: int, scoring: Union[str, Callable], pool: Pool):
-    """ Calculates a list of metrics for cross validated experiments on a set of parameters
+                       cv: int, scoring: Union[str, Callable], timeout: int):
+    """ Calculates a dictionary, containing the loss, the loss variance, and the status of the run.
 
     Args:
         clf_cls: A classifier to use. Should be a subclass of pyod.models.base.BaseDetector
@@ -118,10 +106,11 @@ def cross_val_od_score(clf_cls: Type[pyod.models.base.BaseDetector], kwargs: dic
         y: 0 for inlier, positive int for outlier class
         cv: folds for cross validation
         scoring: string for input into sklearn.metrics.get_scorer, or callable with arguments (clf, X_test, y_test)
-        pool: processing pool
+        timeout: the maximum time taken (in seconds)
 
     Returns:
-        Array of scores/metrics
+        A dictionary that is used by the fmin function in hyperopt.
+
     """
     from functools import partial
     from sklearn.model_selection import StratifiedKFold
@@ -129,8 +118,6 @@ def cross_val_od_score(clf_cls: Type[pyod.models.base.BaseDetector], kwargs: dic
 
     # New style cross validation
     tsf = TimeSeriesFolds(n_splits=cv,
-                          # min_train_size=3000, max_train_size=3000,
-                          # min_test_size=1000, max_test_size=1000,
                           min_train_size=3000, max_train_size=3000,
                           min_test_size=1500, max_test_size=1500,
                           delay=0)
@@ -139,18 +126,51 @@ def cross_val_od_score(clf_cls: Type[pyod.models.base.BaseDetector], kwargs: dic
         for train_idx, test_idx in split:
             yield train_idx, np.concatenate([test_idx, np.where(y != 0)[0]])
 
+    # Share the data between the processes
+    X_raw = RawArray('d', X.shape[0] * X.shape[1])
+    y_raw = RawArray('i', y.shape[0])
+    X_raw_np = np.frombuffer(X_raw).reshape(X.shape)
+    y_raw_np = np.frombuffer(y_raw, dtype=np.int32).reshape(y.shape)
+    np.copyto(X_raw_np, X)
+    np.copyto(y_raw_np, y)
+
+    # Set up the mp pool
+    pool = Pool(processes=cv, initializer=init_data, initargs=[X_raw, X.shape, y_raw, y.shape])
+
     transform = kwargs.pop("transform")
     func = partial(_od_score, clf_cls=clf_cls, kwargs=kwargs,
                    # X=X, y=y,
                    scoring=scoring, transform=transform)
     imap_res = pool.imap(func, split_add_abnormal(tsf.split(X[y == 0])))
-    scores = np.array(list(imap_res))
+    results = []
+    timed_out = False
+    while True:
+        try:
+            results.append(imap_res.next(timeout=timeout))
+        except TimeoutError:
+            timed_out = True
+            break
+        except StopIteration:
+            break
 
-    return {
-        "loss": 1 - scores.mean(),
-        "status": hyperopt.STATUS_OK,
-        "loss_variance": scores.var(),
-    }
+    # Cleanup of the mp pool
+    if timed_out:
+        pool.terminate()
+    else:
+        pool.close()
+    pool.join()
+
+    if results and not timed_out:
+        scores = np.array(results)
+        return {
+            "loss": 1 - scores.mean(),
+            "status": hyperopt.STATUS_OK,
+            "loss_variance": scores.var(),
+        }
+    else:
+        return {
+            "status": hyperopt.STATUS_FAIL,
+        }
 
 
 def _od_score(indices, clf_cls: Type[pyod.models.base.BaseDetector], kwargs: dict,
@@ -194,7 +214,4 @@ def _od_score(indices, clf_cls: Type[pyod.models.base.BaseDetector], kwargs: dic
 
 
 if __name__ == "__main__":
-
-    # main(pca_exp, testrun=False)  # Completed July 29 16:00
-
-    main(sys.argv[1], testrun=int(sys.argv[2]))
+    main(sys.argv[1], testrun=bool(sys.argv[2]), per_run_time=600)
