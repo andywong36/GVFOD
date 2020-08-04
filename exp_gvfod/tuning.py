@@ -13,7 +13,6 @@ from data.dataloader import get_robot_arm_data
 
 global_data = {}
 
-
 def init_data(X, X_shape, y, y_shape):
     """ Used to pass data to processes without copying """
     global_data["X"] = X
@@ -36,7 +35,7 @@ def main(exp_param, testrun=False, per_run_time=600):
                     (clf, X_test, y_test)
                 "runs": number of trials for hyperopt to run
                 "parameters": parameter structure that is accepted by fmin of hyperopt
-        testrun (bool): sets runs to 5 if True
+        testrun (bool, int): sets runs to 5 if True
 
     Returns:
         int: 0 if successful.
@@ -102,6 +101,7 @@ def cross_val_od_score(clf_cls: Type[pyod.models.base.BaseDetector], kwargs: dic
     Args:
         clf_cls: A classifier to use. Should be a subclass of pyod.models.base.BaseDetector
         kwargs: settings for the classifier, as well as the transform
+            transform is None, or a class that has methods fit_transform() and transform()
         X: sensor readings (inputs)
         y: 0 for inlier, positive int for outlier class
         cv: folds for cross validation
@@ -214,4 +214,4 @@ def _od_score(indices, clf_cls: Type[pyod.models.base.BaseDetector], kwargs: dic
 
 
 if __name__ == "__main__":
-    main(sys.argv[1], testrun=bool(sys.argv[2]), per_run_time=600)
+    main(sys.argv[1], testrun=int(sys.argv[2]), per_run_time=600)

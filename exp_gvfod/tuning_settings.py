@@ -160,7 +160,7 @@ hbos_exp = Experiment(
 mcd_exp = Experiment(
     clf=getattr(importlib.import_module("pyod.models.mcd"), "MCD"),
     clfname="MCD",
-    parameters={"support_fraction": hp.uniform("support_fraction_pca", 0.001, 0.999),
+    parameters={"support_fraction": hp.uniform("support_fraction_pca", 0.01, 0.99),
                 "contamination": 0.05,
                 "transform": decomp.PCA(n_components=20)}
 )
