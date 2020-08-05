@@ -5,7 +5,7 @@ import numpy as np
 with open("README.md", "r") as fh:
     long_description = fh.read()
 
-extmodule = Extension('newclearn', sources=['gvfod/newclearn/newclearn.c'],
+extmodule = Extension('clearn', sources=['gvfod/clearn/clearn.c'],
                       include_dirs=[np.get_include(),])
 
 setuptools.setup(

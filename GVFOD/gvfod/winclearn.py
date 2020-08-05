@@ -1,4 +1,3 @@
-""" Tests the clearn.dll """
 
 import ctypes
 import logging
@@ -27,34 +26,23 @@ def learn(x, y,
     alphatype = float
 
     # Preprocessing
-    if (not x.flags['C_CONTIGUOUS']) or (x.dtype != xtype):
-        x = np.ascontiguousarray(x, dtype=xtype)
+    x = np.ascontiguousarray(x, dtype=xtype)
+    y = np.ascontiguousarray(y, dtype=ytype)
+    tde = np.ascontiguousarray(tde, dtype=tdetype)
+    w = np.ascontiguousarray(w, dtype=wtype)
+    z = np.ascontiguousarray(z, dtype=ztype)
+    gamma = gammatype(gamma)
+    lambda_ = lambdatype(lambda_)
+    alpha = alphatype(alpha)
+
     nobs = x.shape[0]
     ntilings = x.shape[1]
-    assert x.ndim == 2
-
-    if (not y.flags['C_CONTIGUOUS']) or (y.dtype != ytype):
-        y = np.ascontiguousarray(y, dtype=ytype)
-    assert y.size == nobs
-
-    if (not tde.flags['C_CONTIGUOUS']) or (tde.dtype != tdetype):
-        tde = np.ascontiguousarray(tde, dtype=tdetype)
-    assert tde.size == nobs
-
-    if (not w.flags['C_CONTIGUOUS']) or (w.dtype != wtype):
-        w = np.ascontiguousarray(w, dtype=wtype)
     nweights = w.size
 
-    if (not z.flags['C_CONTIGUOUS']) or (z.dtype != ztype):
-        z = np.ascontiguousarray(z, dtype=ztype)
+    assert x.ndim == 2
+    assert y.size == nobs
+    assert tde.size == nobs
     assert z.size == nweights
-
-    if not isinstance(gamma, gammatype):
-        gamma = gammatype(gamma)
-    if not isinstance(lambda_, lambdatype):
-        lambda_ = lambdatype(lambda_)
-    if not isinstance(alpha, alphatype):
-        alpha = alphatype(alpha)
 
     _indpp = ndpointer(dtype=np.uintp, ndim=1, flags="C")
     _doublep = ndpointer(dtype=np.float64, ndim=1, flags="C")
@@ -70,17 +58,11 @@ def learn(x, y,
 
     logger.info("Preparing data")
 
-    # xpp = np.ascontiguousarray(
-    #     (x.ctypes.data
-    #      + np.arange(x.shape[0]) * x.strides[0]).astype(np.uintp))
     xpp = (x.ctypes.data
            + np.arange(0,
                        x.shape[0] * x.strides[0],
                        x.strides[0], dtype=np.uintp))
-    # yp = y.ctypes.data_as(ctypes.POINTER(ctypes.c_double))
-    # tdep = tde.ctypes.data_as(ctypes.POINTER(ctypes.c_double))
-    # wp = w.ctypes.data_as(ctypes.POINTER(ctypes.c_double))
-    # zp = z.ctypes.data_as(ctypes.POINTER(ctypes.c_double))
+
     nobs_arg = ctypes.c_size_t(nobs)
     ntilings_arg = ctypes.c_size_t(ntilings)
     nweights_arg = ctypes.c_size_t(nweights)

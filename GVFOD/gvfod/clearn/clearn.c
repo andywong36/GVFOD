@@ -1,12 +1,12 @@
 #define PY_SSIZE_T_CLEAN
 #include <Python.h>
 #include <numpy/arrayobject.h>
-#include "newclearn.h"
+#include "clearn.h"
 
 #define NPY_NO_DEPRECATED_API NPY_API_VERSION
 
 PyDoc_STRVAR(clearn_doc,
-             "Built in, cross-platform newclearn method.\n"
+             "Built in, cross-platform clearn method.\n"
              "\n"
              "All the input arrays need to be C Arrays in Numpy. \n"
              "\n"
@@ -23,7 +23,7 @@ PyDoc_STRVAR(clearn_doc,
              "   0 on success.");
 
 static PyObject *
-newclearn(PyObject *self, PyObject *args, PyObject *kwargs)
+clearn(PyObject *self, PyObject *args, PyObject *kwargs)
 {
     static const char *keywordList[] = {"phi", "y", "tde", "w", "z", "gamma", "lambda_", "alpha", NULL};
     PyArrayObject *phi = NULL, *y = NULL, *tde = NULL, *w = NULL, *z = NULL;
@@ -179,20 +179,20 @@ finally:
 
 static struct PyMethodDef methods[] =
     {
-        {"newclearn", newclearn, METH_VARARGS | METH_KEYWORDS,
+        {"clearn", clearn, METH_VARARGS | METH_KEYWORDS,
          clearn_doc},
         {NULL, NULL, 0, NULL}};
 
 static struct PyModuleDef clearnMod =
     {
         PyModuleDef_HEAD_INIT,
-        "newclearn",                     /* name of module */
+        "clearn",                     /* name of module */
         "New cross-platform TD(lambda)", /* module documentation, may be NULL */
         -1,                              /* size of per-interpreter state of the module, or -1 if the module keeps state in global variables. */
         methods};
 
 PyMODINIT_FUNC
-PyInit_newclearn(void)
+PyInit_clearn(void)
 {
     PyObject *initret = PyModule_Create(&clearnMod);
     import_array();

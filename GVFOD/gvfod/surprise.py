@@ -1,13 +1,6 @@
-from functools import partial
-from multiprocessing import Pool
-
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
 from tqdm import trange
-
-from .state import Tiler
-from .scaling import scaling
 
 
 class TDLambdaGVF:
@@ -33,52 +26,34 @@ class TDLambdaGVF:
         assert len(y) == x.shape[0]
         self.tderrors = np.zeros(len(y))
         self.surprise = np.zeros(len(y))
-        if isinstance(y, (pd.Series, pd.DataFrame)):
-            for t in trange(y.shape[0] - 1, desc="Processing {}".format(y.name)):
-                delta = (y.iat[t + 1]
-                         + self.gamma * self.value(x[t + 1, :])
-                         - self.value(x[t, :]))
-                self.tderrors[t] = delta
+        for t in trange(y.shape[0] - 1):
+            delta = (y[t + 1]
+                     + self.gamma * self.value(x[t + 1, :])
+                     - self.value(x[t, :]))
+            self.tderrors[t] = delta
 
-                self.z = self.z * self.gamma * self.lamda
-                for i in x[t, :]:
-                    self.z[i] += 1
-                self.w = self.w + self.alpha * delta * self.z
-        elif isinstance(y, np.ndarray):
-            assert y.ndim == 1
-            for t in trange(y.shape[0] - 1):
-                delta = (y[t + 1]
-                         + self.gamma * self.value(x[t + 1, :])
-                         - self.value(x[t, :]))
-                self.tderrors[t] = delta
-
-                self.z = self.z * self.gamma * self.lamda
-                for i in x[t, :]:
-                    self.z[i] += 1
-                self.w = self.w + self.alpha * delta * self.z
+            self.z = self.z * self.gamma * self.lamda
+            for i in x[t, :]:
+                self.z[i] += 1
+            self.w = self.w + self.alpha * delta * self.z
         self.surprise = self._surprise(self.beta)
 
         return self.tderrors, self.surprise
 
     def eval(self, x, y):
         assert len(y) == x.shape[0]
+        assert y.ndim == 1
         self.tderrors = np.zeros(len(y))
         self.surprise = np.zeros(len(y))
-        if isinstance(y, (pd.Series, pd.DataFrame)):
-            for t in trange(y.shape[0] - 1, desc="Processing {}".format(y.name)):
-                delta = (y.iat[t + 1]
-                         + self.gamma * self.value(x[t + 1, :])
-                         - self.value(x[t, :]))
-                self.tderrors[t] = delta
+        v = np.zeros(len(y))
 
-        elif isinstance(y, np.ndarray):
-            assert y.ndim == 1
-            for t in trange(y.shape[0] - 1):
-                delta = (y[t + 1]
-                         + self.gamma * self.value(x[t + 1, :])
-                         - self.value(x[t, :]))
-                self.tderrors[t] = delta
-
+        y_rolled = np.roll(y, -1)
+        for i in trange(len(v)):
+            v[i] = self.value(x[i, :])
+        v_rolled = np.roll(v, -1)
+        print("Calculating TD Errors")
+        self.tderrors = y_rolled + self.gamma * v_rolled - v
+        print("Calculating Surprise")
         self.surprise = self._surprise(self.beta)
 
         return self.tderrors, self.surprise
