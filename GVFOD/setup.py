@@ -5,11 +5,11 @@ import numpy as np
 with open("README.md", "r") as fh:
     long_description = fh.read()
 
-extmodule = Extension('clearn', sources=['gvfod/clearn/clearn.c'],
+extmodule = Extension('gvfod.clearn', sources=['gvfod/clearn/clearn.c'],
                       include_dirs=[np.get_include(),])
 
 setuptools.setup(
-    name="GVFOD-Andy-Wong",  # Replace with your own username
+    name="GVFOD",  # Replace with your own username
     version="0.0.1",
     author="Andy Wong",
     author_email="andy.wong@ualberta.ca",

@@ -2,6 +2,8 @@ import numpy as np
 import pandas as pd
 from tqdm import trange
 
+from gvfod import flearn
+
 
 class TDLambdaGVF:
     FLOATEPS = np.finfo(np.float).eps
@@ -24,18 +26,17 @@ class TDLambdaGVF:
 
     def learn(self, x, y):
         assert len(y) == x.shape[0]
-        self.tderrors = np.zeros(len(y))
-        self.surprise = np.zeros(len(y))
-        for t in trange(y.shape[0] - 1):
-            delta = (y[t + 1]
-                     + self.gamma * self.value(x[t + 1, :])
-                     - self.value(x[t, :]))
-            self.tderrors[t] = delta
 
-            self.z = self.z * self.gamma * self.lamda
-            for i in x[t, :]:
-                self.z[i] += 1
-            self.w = self.w + self.alpha * delta * self.z
+        # Check the types
+        assert np.all(x >= 0)
+
+        self.tderrors = np.zeros(len(y))
+        flearn(np.ascontiguousarray(x, dtype=np.uintp),
+               np.ascontiguousarray(y),
+               self.tderrors, self.w,
+               self.z, self.gamma,
+               self.lamda, self.alpha)
+
         self.surprise = self._surprise(self.beta)
 
         return self.tderrors, self.surprise
@@ -44,16 +45,13 @@ class TDLambdaGVF:
         assert len(y) == x.shape[0]
         assert y.ndim == 1
         self.tderrors = np.zeros(len(y))
-        self.surprise = np.zeros(len(y))
-        v = np.zeros(len(y))
 
-        y_rolled = np.roll(y, -1)
-        for i in trange(len(v)):
-            v[i] = self.value(x[i, :])
-        v_rolled = np.roll(v, -1)
-        print("Calculating TD Errors")
-        self.tderrors = y_rolled + self.gamma * v_rolled - v
-        print("Calculating Surprise")
+        flearn(np.ascontiguousarray(x, dtype=np.uintp),
+               np.ascontiguousarray(y),
+               self.tderrors, self.w,
+               self.z, self.gamma,
+               self.lamda, 0.)
+
         self.surprise = self._surprise(self.beta)
 
         return self.tderrors, self.surprise

@@ -41,7 +41,7 @@ try_:
     assert(!PyErr_Occurred());
     assert(args || kwargs);
     Py_INCREF(args);
-    Py_INCREF(kwargs);
+    Py_XINCREF(kwargs);
 
     /* obj_a = ...; */
     if (!PyArg_ParseTupleAndKeywords(
@@ -80,11 +80,11 @@ try_:
         PyErr_SetString(PyExc_ValueError, "y, tde, w, and/or z not of correct type");
         goto except;
     }
-    if (PyObject_Print(phi, stdout, Py_PRINT_RAW) == -1)
-    {
-        PyErr_SetString(PyExc_IOError, "Could not print phi");
-        goto except;
-    }
+//    if (PyObject_Print(phi, stdout, Py_PRINT_RAW) == -1)
+//    {
+//        PyErr_SetString(PyExc_IOError, "Could not print phi");
+//        goto except;
+//    }
     if (!PyArray_ISCARRAY(phi))
     {
         PyErr_SetString(PyExc_ValueError, "phi is not NPY_CARRAY");
@@ -147,9 +147,9 @@ try_:
     nweights = PyArray_DIMS(w)[0];
 
     /* Do the learning */
-    printf("\nThe first 3 elements of tde were %f, %f, %f\n", ctde[0], ctde[1], ctde[2]);
+//    printf("\nThe first 3 elements of tde were %f, %f, %f\n", ctde[0], ctde[1], ctde[2]);
     learn(cphi, cy, ctde, cw, cz, nobs, ntilings, nweights, gamma, lambda, alpha);
-    printf("The first 3 elements of tde are now %f, %f, %f\n", ctde[0], ctde[1], ctde[2]);
+//    printf("The first 3 elements of tde are now %f, %f, %f\n", ctde[0], ctde[1], ctde[2]);
 
     /* Return object creation, ret must be a new reference. */
     ret = PyBool_FromLong(0L);
@@ -173,7 +173,7 @@ finally:
     PyArray_XDECREF(w);
     PyArray_XDECREF(z);
     Py_DECREF(args);
-    Py_DECREF(kwargs);
+    Py_XDECREF(kwargs);
     return ret;
 };
 

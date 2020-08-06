@@ -8,7 +8,6 @@ from pyod.models.base import BaseDetector
 
 from .surprise import TDLambdaGVF
 from .tile_coder import TileCoder
-from . import winclearn
 
 
 class GVFOD(BaseDetector):
@@ -98,37 +97,18 @@ class GVFOD(BaseDetector):
         tderrors = np.empty_like(X_stacked)
         for j in range(self.n_sensors):
             print(f"Fitting on sensor {j}")
-            # This is the fast version:
-            if os.name == 'nt':
-                self.models[j].tderrors = np.zeros(len(phi))
-                winclearn.learn(phi, X_stacked[:, j], self.models[j].tderrors, self.models[j].w,
-                                self.models[j].z, self.models[j].gamma, self.models[j].lamda,
-                                self.models[j].alpha)
-                tderrors[:, j] = self.models[j].tderrors
-                self.models[j].surprise = self.models[j]._surprise(self.beta)
-                surprise[:, j] = self.models[j].surprise
-            else:
-                tderrors[:, j], surprise[:, j] = self.models[j].learn(phi, X_stacked[:, j])
-            # tderrors[:, j], surprise[:, j] = self.models[j].learn(phi, X_stacked[:, j])
+            tderrors[:, j], surprise[:, j] = self.models[j].learn(phi, X_stacked[:, j])
 
         # Calculate new surprise values using this trained model, and no training rate
         for j in range(self.n_sensors):
             print(f"Evaluating TD errors on sensor {j}")
-            if os.name == 'nt':
-                self.models[j].tderrors = np.zeros(len(phi))
-                winclearn.learn(phi, X_stacked[:, j], self.models[j].tderrors, self.models[j].w,
-                                self.models[j].z, self.models[j].gamma, self.models[j].lamda,
-                                0.)
-                tderrors[:, j] = self.models[j].tderrors
-                self.models[j].surprise = self.models[j]._surprise(self.beta)
-                surprise[:, j] = self.models[j].surprise
-            else:
-                tderrors[:, j], surprise[:, j] = self.models[j].eval(phi, X_stacked[:, j])
-            # tderrors[:, j], surprise[:, j] = self.models[j].eval(phi, X_stacked[:, j])
+            tderrors[:, j], surprise[:, j] = self.models[j].eval(phi, X_stacked[:, j])
 
         # set decision scores of training data
-        averaged = [np.mean(arr) for arr in np.vsplit(surprise, n_samples)]
-        self.decision_scores_ = np.array(averaged)
+        self.decision_scores_ = np.empty(n_samples)
+        for i, v in enumerate(np.vsplit(surprise, n_samples)):
+            self.decision_scores_[i] = np.mean(v)
+
         self._process_decision_scores()
 
     def _check_and_preprocess(self, X: np.ndarray):
@@ -165,5 +145,8 @@ class GVFOD(BaseDetector):
         for j in range(self.n_sensors):
             # self.models[j].alpha = 0
             tderrors[:, j], surprise[:, j] = self.models[j].eval(phi, X_stacked[:, j])
-        averaged = np.array([np.mean(arr) for arr in np.vsplit(surprise, n_samples)])
+        averaged = np.empty(n_samples)
+        for i, v in enumerate(np.vsplit(surprise, n_samples)):
+            averaged[i] = np.mean(v)
+
         return averaged

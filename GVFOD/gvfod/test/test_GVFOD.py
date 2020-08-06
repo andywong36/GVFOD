@@ -3,6 +3,10 @@ import unittest
 
 import numpy as np
 
+results = {
+    0.05: 0.9671253822629969
+}
+
 class test_GVFOD(unittest.TestCase):
     def test_main(self):
         import time
@@ -12,11 +16,12 @@ class test_GVFOD(unittest.TestCase):
         from data.dataloader import get_robot_arm_data
         from gvfod import GVFOD
 
+        pct_normal = 0.05  # Percentage of normal data to use in both train/test
         pct_train = 0.6  # Percentage of training data
 
         X, y = get_robot_arm_data()
         X_nor = X[y == 0]
-        X_nor = X_nor[:int(len(X_nor) * 0.05)]
+        X_nor = X_nor[:int(len(X_nor) * pct_normal)]
         X_abn = X[y != 0]
 
         model = GVFOD(space=[[10, 180],  # Angle limits
@@ -47,6 +52,8 @@ class test_GVFOD(unittest.TestCase):
             np.hstack([normal_pred, abnorm_pred]))
         print("Accuracy score is:", acc)
         self.assertGreaterEqual(acc, 0.6)
+        if pct_normal in results:
+            self.assertEqual(acc, results[pct_normal])
 
 
 if __name__ == '__main__':
