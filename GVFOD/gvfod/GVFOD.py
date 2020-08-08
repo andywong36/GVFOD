@@ -70,6 +70,7 @@ class GVFOD(BaseDetector):
                 self.lamda,
                 self.beta)
             for _ in range(self.n_sensors)]
+        self.means = np.zeros(self.n_sensors)
         self.decision_scores_ = None
 
         super().__init__(contamination)
@@ -87,7 +88,7 @@ class GVFOD(BaseDetector):
 
         # data preprocessing
         n_samples = len(X)
-        X_stacked = self._check_and_preprocess(X)
+        X_stacked = self._check_and_preprocess(X, fit_means=True)
 
         # tiling
         phi = self.tilecoder.encode(X_stacked)
@@ -97,12 +98,13 @@ class GVFOD(BaseDetector):
         tderrors = np.empty_like(X_stacked)
         for j in range(self.n_sensors):
             print(f"Fitting on sensor {j}")
-            tderrors[:, j], surprise[:, j] = self.models[j].learn(phi, X_stacked[:, j])
+            tderrors[:, j], surprise[:, j] = self.models[j].learn_eval(phi, X_stacked[:, j])
+            # tderrors[:, j], surprise[:, j] = self.models[j].learn(phi, X_stacked[:, j])
 
         # Calculate new surprise values using this trained model, and no training rate
-        for j in range(self.n_sensors):
-            print(f"Evaluating TD errors on sensor {j}")
-            tderrors[:, j], surprise[:, j] = self.models[j].eval(phi, X_stacked[:, j])
+        # for j in range(self.n_sensors):
+        #     print(f"Evaluating TD errors on sensor {j}")
+        #     tderrors[:, j], surprise[:, j] = self.models[j].eval(phi, X_stacked[:, j])
 
         # set decision scores of training data
         self.decision_scores_ = np.empty(n_samples)
@@ -111,7 +113,7 @@ class GVFOD(BaseDetector):
 
         self._process_decision_scores()
 
-    def _check_and_preprocess(self, X: np.ndarray):
+    def _check_and_preprocess(self, X: np.ndarray, fit_means: bool):
         """ Scales and reshapes data for RL
 
         Args:
@@ -131,12 +133,19 @@ class GVFOD(BaseDetector):
             # put this data into a 3D array of shape (n, t_period, n_sensors):
             X = np.reshape(_X_1d, (X.shape[0], -1, self.n_sensors), order="F")
             X = X.reshape(-1, self.n_sensors)
-
-        return np.ascontiguousarray(X)
+        if fit_means:
+            self.means = X.mean(axis=0)
+            self.tilecoder = TileCoder(
+                np.asarray(self.space) - self.means[:, None],
+                self.divs_per_dim,
+                self.numtilings,
+                bias_unit=True
+            )
+        return np.ascontiguousarray(X - self.means)
 
     def decision_function(self, X):
         n_samples = len(X)
-        X_stacked = self._check_and_preprocess(X)
+        X_stacked = self._check_and_preprocess(X, fit_means=False)
 
         phi = self.tilecoder.encode(X_stacked)
 

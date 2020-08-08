@@ -3,6 +3,7 @@ import pandas as pd
 from tqdm import trange
 
 from gvfod import flearn
+from gvfod.learn import learn_ude, learn_ude_naive
 
 
 class TDLambdaGVF:
@@ -26,9 +27,8 @@ class TDLambdaGVF:
 
     def learn(self, x, y):
         assert len(y) == x.shape[0]
-
-        # Check the types
-        assert np.all(x >= 0)
+        assert y.ndim == 1
+        assert np.all(x >= 0) and np.all(x < self.state_size)
 
         self.tderrors = np.zeros(len(y))
         flearn(np.ascontiguousarray(x, dtype=np.uintp),
@@ -44,26 +44,53 @@ class TDLambdaGVF:
     def eval(self, x, y):
         assert len(y) == x.shape[0]
         assert y.ndim == 1
+        assert np.all(x >= 0) and np.all(x < self.state_size)
+
         self.tderrors = np.zeros(len(y))
 
         flearn(np.ascontiguousarray(x, dtype=np.uintp),
                np.ascontiguousarray(y),
                self.tderrors, self.w,
                self.z, self.gamma,
-               self.lamda, 0.)
+               self.lamda, alpha=0.)
 
         self.surprise = self._surprise(self.beta)
 
         return self.tderrors, self.surprise
 
+    def learn_eval(self, x, y):
+        assert len(y) == x.shape[0]
+        assert y.ndim == 1
+        assert np.all(x >= 0) and np.all(x < self.state_size)
+        self.tderrors = np.zeros_like(y)
+        self.surprise = np.zeros_like(y)
+
+        linear = True
+        if linear:
+            learn_ude(np.ascontiguousarray(x, dtype=np.uintp),
+                      np.ascontiguousarray(y),
+                      self.tderrors, self.w,
+                      self.z, self.gamma,
+                      self.lamda, self.alpha,
+                      self.surprise, self.beta)
+        else:
+            learn_ude_naive(np.ascontiguousarray(x, dtype=np.uintp),
+                            np.ascontiguousarray(y),
+                            self.tderrors, self.w,
+                            self.z, self.gamma,
+                            self.lamda, self.alpha,
+                            self.surprise, self.beta)
+
+        return self.tderrors, self.surprise
+
     def _tde_ma(self, n):
-        ret = np.cumsum(self.tderrors, dtype=float)
+        ret = np.cumsum(self.tderrors)
         ret[n:] = ret[n:] - ret[:-n]
         return ret / n
 
     def _surprise(self, beta):
-        std = pd.Series(self.tderrors).expanding(2).std(ddof=0)
+        std = pd.Series(self.tderrors).expanding(2).std(ddof=1)
         std = std.fillna(0).values
         surprise = np.abs(np.divide(self._tde_ma(beta), (std + self.FLOATEPS)))
-        surprise[:2] = 0
+        surprise[[0, 1, -1]] = 0
         return surprise
