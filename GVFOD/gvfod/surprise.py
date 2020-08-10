@@ -1,13 +1,8 @@
-from functools import partial
-from multiprocessing import Pool
-
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
 from tqdm import trange
 
-from .state import Tiler
-from .scaling import scaling
+from gvfod import flearn
 
 
 class TDLambdaGVF:
@@ -31,53 +26,31 @@ class TDLambdaGVF:
 
     def learn(self, x, y):
         assert len(y) == x.shape[0]
+
+        # Check the types
+        assert np.all(x >= 0)
+
         self.tderrors = np.zeros(len(y))
-        self.surprise = np.zeros(len(y))
-        if isinstance(y, (pd.Series, pd.DataFrame)):
-            for t in trange(y.shape[0] - 1, desc="Processing {}".format(y.name)):
-                delta = (y.iat[t + 1]
-                         + self.gamma * self.value(x[t + 1, :])
-                         - self.value(x[t, :]))
-                self.tderrors[t] = delta
+        flearn(np.ascontiguousarray(x, dtype=np.uintp),
+               np.ascontiguousarray(y),
+               self.tderrors, self.w,
+               self.z, self.gamma,
+               self.lamda, self.alpha)
 
-                self.z = self.z * self.gamma * self.lamda
-                for i in x[t, :]:
-                    self.z[i] += 1
-                self.w = self.w + self.alpha * delta * self.z
-        elif isinstance(y, np.ndarray):
-            assert y.ndim == 1
-            for t in trange(y.shape[0] - 1):
-                delta = (y[t + 1]
-                         + self.gamma * self.value(x[t + 1, :])
-                         - self.value(x[t, :]))
-                self.tderrors[t] = delta
-
-                self.z = self.z * self.gamma * self.lamda
-                for i in x[t, :]:
-                    self.z[i] += 1
-                self.w = self.w + self.alpha * delta * self.z
         self.surprise = self._surprise(self.beta)
 
         return self.tderrors, self.surprise
 
     def eval(self, x, y):
         assert len(y) == x.shape[0]
+        assert y.ndim == 1
         self.tderrors = np.zeros(len(y))
-        self.surprise = np.zeros(len(y))
-        if isinstance(y, (pd.Series, pd.DataFrame)):
-            for t in trange(y.shape[0] - 1, desc="Processing {}".format(y.name)):
-                delta = (y.iat[t + 1]
-                         + self.gamma * self.value(x[t + 1, :])
-                         - self.value(x[t, :]))
-                self.tderrors[t] = delta
 
-        elif isinstance(y, np.ndarray):
-            assert y.ndim == 1
-            for t in trange(y.shape[0] - 1):
-                delta = (y[t + 1]
-                         + self.gamma * self.value(x[t + 1, :])
-                         - self.value(x[t, :]))
-                self.tderrors[t] = delta
+        flearn(np.ascontiguousarray(x, dtype=np.uintp),
+               np.ascontiguousarray(y),
+               self.tderrors, self.w,
+               self.z, self.gamma,
+               self.lamda, 0.)
 
         self.surprise = self._surprise(self.beta)
 

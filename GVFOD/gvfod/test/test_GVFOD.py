@@ -1,47 +1,59 @@
 import os
 import unittest
 
+import numpy as np
+
+results = {
+    0.05: 0.9671253822629969
+}
 
 class test_GVFOD(unittest.TestCase):
     def test_main(self):
         import time
 
-        import numpy as np
         from sklearn.metrics import accuracy_score
 
         from data.dataloader import get_robot_arm_data
         from gvfod import GVFOD
 
-        pt_train = 0.6  # Percentage of training data
+        pct_normal = 0.05  # Percentage of normal data to use in both train/test
+        pct_train = 0.6  # Percentage of training data
 
         X, y = get_robot_arm_data()
         X_nor = X[y == 0]
+        X_nor = X_nor[:int(len(X_nor) * pct_normal)]
         X_abn = X[y != 0]
 
-        model = GVFOD(n_sensors=X.shape[1] // 2000,
-                      divisions=[4, 4, 4],
+        model = GVFOD(space=[[10, 180],  # Angle limits
+                             [-1, 1],  # Torque limits
+                             [0, 300]  # Tension limits
+                             ],
+                      divs_per_dim=[4, 4, 4],
                       wrap_idxs=None,
                       int_idxs=None,
                       numtilings=32,
-                      state_size=2048,
                       discount_rate=0.986,
                       learn_rate=0.005,
                       lamda=0.25,
                       beta=1000,
                       contamination=0.05)
 
-        cutoff = int(len(X_nor) * pt_train)
+        cutoff = int(len(X_nor) * pct_train)
         start = time.time()
+        print("Starting fitting")
         model.fit(X_nor[:cutoff])
         print(f"It takes {time.time() - start}s to train {cutoff} samples.")
 
         normal_pred = model.predict(X_nor)
         abnorm_pred = model.predict(X_abn)
 
-        print("Accuracy score is (normal):", accuracy_score(0, normal_pred))
-        self.assertGreaterEqual(accuracy_score(0, normal_pred), 0.6)
-        print("Accuracy score is (abnorm):", accuracy_score(1, abnorm_pred))
-        self.assertGreaterEqual(accuracy_score(0, abnorm_pred), 0.6)
+        acc = accuracy_score(
+            [0]*len(normal_pred) + [1] * len(abnorm_pred),
+            np.hstack([normal_pred, abnorm_pred]))
+        print("Accuracy score is:", acc)
+        self.assertGreaterEqual(acc, 0.6)
+        if pct_normal in results:
+            self.assertEqual(acc, results[pct_normal])
 
 
 if __name__ == '__main__':
