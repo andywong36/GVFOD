@@ -26,8 +26,7 @@ class test_GVFOD(unittest.TestCase):
 
         model = GVFOD(space=[[10, 180],  # Angle limits
                              [-1, 1],  # Torque limits
-                             [0, 300]  # Tension limits
-                             ],
+                             [0, 300]],  # Tension limits
                       divs_per_dim=[4, 4, 4],
                       wrap_idxs=None,
                       int_idxs=None,

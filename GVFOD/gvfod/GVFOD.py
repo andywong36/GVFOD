@@ -96,12 +96,12 @@ class GVFOD(BaseDetector):
         surprise = np.empty_like(X_stacked)
         tderrors = np.empty_like(X_stacked)
         for j in range(self.n_sensors):
-            print(f"Fitting on sensor {j}")
+            # print(f"Fitting on sensor {j}")
             tderrors[:, j], surprise[:, j] = self.models[j].learn(phi, X_stacked[:, j])
 
         # Calculate new surprise values using this trained model, and no training rate
         for j in range(self.n_sensors):
-            print(f"Evaluating TD errors on sensor {j}")
+            # print(f"Evaluating TD errors on sensor {j}")
             tderrors[:, j], surprise[:, j] = self.models[j].eval(phi, X_stacked[:, j])
 
         # set decision scores of training data
@@ -131,6 +131,14 @@ class GVFOD(BaseDetector):
             # put this data into a 3D array of shape (n, t_period, n_sensors):
             X = np.reshape(_X_1d, (X.shape[0], -1, self.n_sensors), order="F")
             X = X.reshape(-1, self.n_sensors)
+
+        for sensor_idx in range(self.n_sensors):
+            if X[:, sensor_idx].max() > self.space[sensor_idx, 1]:
+                raise ValueError(f"Value for sensor {sensor_idx}: {X[:, sensor_idx].max()} "
+                                 f"exceeds max: {self.space[sensor_idx,1]}")
+            if X[:, sensor_idx].min() < self.space[sensor_idx, 0]:
+                raise ValueError(f"Value for sensor {sensor_idx}: {X[:, sensor_idx].min()} "
+                                 f"exceeds min: {self.space[sensor_idx,0]}")
 
         return np.ascontiguousarray(X)
 

@@ -26,9 +26,10 @@ class TDLambdaGVF:
 
     def learn(self, x, y):
         assert len(y) == x.shape[0]
-
-        # Check the types
-        assert np.all(x >= 0)
+        assert y.ndim == 1
+        if not np.all(x >= 0):
+            print(x.min(), np.where(x == x.min()))
+            raise ValueError("There exists negative phi")
 
         self.tderrors = np.zeros(len(y))
         flearn(np.ascontiguousarray(x, dtype=np.uintp),
@@ -44,6 +45,7 @@ class TDLambdaGVF:
     def eval(self, x, y):
         assert len(y) == x.shape[0]
         assert y.ndim == 1
+        assert np.all(x >= 0)
         self.tderrors = np.zeros(len(y))
 
         flearn(np.ascontiguousarray(x, dtype=np.uintp),

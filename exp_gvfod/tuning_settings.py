@@ -173,7 +173,7 @@ pca_exp = Experiment(
      "n_components": hyperopt.pyll.scope.int(hp.quniform("n_components", 2, 50, 1)),
      "whiten": hp.choice("whiten", [False, True]),
      "weighted": hp.choice("weighted", [False, True]),
-             "transform": None
+     "transform": None
      },
 )
 
@@ -196,19 +196,23 @@ gvfod_exp = Experiment(
     clf=getattr(importlib.import_module("gvfod"), "GVFOD"),
     clfname="GVFOD",
     metric="f1",
-    runs=100,
+    runs=400,
     parameters={
-        "n_sensors": 3,
-        "contamination": 0.05,
-        "divisions": [
-            hyperopt.pyll.scope.int(hp.quniform("division0", 1, 32, 1)),
-            hyperopt.pyll.scope.int(hp.quniform("division1", 1, 32, 1)),
-            hyperopt.pyll.scope.int(hp.quniform("division2", 1, 32, 1)),
+        "space": [[10, 180],  # Angle limits
+                  [-1, 1],  # Torque limits
+                  [0, 300]],  # Tension limits
+        "divs_per_dim": [
+            hyperopt.pyll.scope.int(hp.quniform("division0", 2, 10, 1)),
+            hyperopt.pyll.scope.int(hp.quniform("division1", 2, 10, 1)),
+            hyperopt.pyll.scope.int(hp.quniform("division2", 2, 10, 1)),
         ],
+        "numtilings": hyperopt.pyll.scope.int(hp.choice("numtilings", (1, 2, 4, 8, 16, 32))),
         "discount_rate": hp.uniform("discount_rate", 0, 1),
         "learn_rate": hp.uniform("learn_rate", 0, 1),
         "lamda": hp.uniform("lamda", 0, 1),
         "beta": hyperopt.pyll.scope.int(hp.quniform("beta", 2, 1000, 2)),
         "transform": None,
+        "scaling": False,
+        "contamination": 0.05,
     }
 )
