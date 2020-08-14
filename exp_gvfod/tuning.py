@@ -138,9 +138,9 @@ def cross_val_od_score(clf_cls: Type[pyod.models.base.BaseDetector], kwargs: dic
     pool = Pool(processes=cv, initializer=init_data, initargs=[X_raw, X.shape, y_raw, y.shape])
 
     transform = kwargs.pop("transform")
+    scaling = kwargs.pop("scaling") if "scaling" in kwargs else True
     func = partial(_od_score, clf_cls=clf_cls, kwargs=kwargs,
-                   # X=X, y=y,
-                   scoring=scoring, transform=transform)
+                   scoring=scoring, transform=transform, scaling=scaling)
     imap_res = pool.imap(func, split_add_abnormal(tsf.split(X[y == 0])))
     results = []
     timed_out = False
@@ -177,6 +177,7 @@ def _od_score(indices, clf_cls: Type[pyod.models.base.BaseDetector], kwargs: dic
               # X: np.ndarray, y: np.ndarray,
               scoring: Union[str, Callable],
               transform: Union[None, Callable],
+              scaling: bool,
               ) -> np.ndarray:
     """ See cross_val_od_score """
     train_idx, test_idx = indices
@@ -190,9 +191,10 @@ def _od_score(indices, clf_cls: Type[pyod.models.base.BaseDetector], kwargs: dic
     X_train, y_train = X_train[y_train == 0], y_train[y_train == 0]
 
     # Scale the features
-    ss = pp.StandardScaler()
-    X_train = ss.fit_transform(X_train)
-    X_test = ss.transform(X_test)
+    if scaling:
+        ss = pp.StandardScaler()
+        X_train = ss.fit_transform(X_train)
+        X_test = ss.transform(X_test)
 
     # Transform the features if necessary
     if transform is not None:

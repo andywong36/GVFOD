@@ -5,8 +5,8 @@ import numpy as np
 with open("README.md", "r") as fh:
     long_description = fh.read()
 
-extmodule = Extension('gvfod.clearn', sources=['gvfod/clearn/clearn.c'],
-                      include_dirs=[np.get_include(),])
+extmodule = Extension('gvfod.clearn', sources=['gvfod/clearn/clearn.c', 'gvfod/clearn/utils.c'],
+                      include_dirs=[np.get_include(), ])
 
 setuptools.setup(
     name="GVFOD",  # Replace with your own username
@@ -23,6 +23,7 @@ setuptools.setup(
         "pyod",
         "pandas",
         "tqdm",
+        "sklearn"
     ],
     classifiers=[
         "Programming Language :: Python :: 3",

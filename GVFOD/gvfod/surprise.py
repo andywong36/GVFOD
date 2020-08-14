@@ -2,8 +2,8 @@ import numpy as np
 import pandas as pd
 from tqdm import trange
 
-from gvfod import flearn
-from gvfod.learn import learn_ude, learn_ude_naive
+from . import flearn
+from .learn import learn_ude, learn_ude_naive
 
 
 class TDLambdaGVF:

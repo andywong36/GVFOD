@@ -1,7 +1,7 @@
 #define PY_SSIZE_T_CLEAN
 #include <Python.h>
 #include <numpy/arrayobject.h>
-#include "clearn.h"
+#include "utils.h"
 
 #define NPY_NO_DEPRECATED_API NPY_API_VERSION
 

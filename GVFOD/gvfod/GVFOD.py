@@ -33,8 +33,8 @@ class GVFOD(BaseDetector):
         Args:
             space: The min and max values for each sensor. Input data X for fit() and predict() should have a shape of
                 (n_samples, n_sensors * period). Hence, X.shape[1] must be divisible by n_sensors
-            divs_per_dim: The number of divisions to discretize each sensor's data. The smallest resolution that the tiler
-                can handle is divisions[sensor] * num_tilings.
+            divs_per_dim: The number of divisions to discretize each sensor's data. The smallest resolution that the
+                tiler can handle is divisions[sensor] * num_tilings.
             wrap_idxs: Not implemented
             int_idxs: The indices of discrete variables
             numtilings: Sub-discretizations. From tiling software.
@@ -133,6 +133,15 @@ class GVFOD(BaseDetector):
             # put this data into a 3D array of shape (n, t_period, n_sensors):
             X = np.reshape(_X_1d, (X.shape[0], -1, self.n_sensors), order="F")
             X = X.reshape(-1, self.n_sensors)
+
+        for sensor_idx in range(self.n_sensors):
+            if X[:, sensor_idx].max() > self.space[sensor_idx, 1]:
+                raise ValueError(f"Value for sensor {sensor_idx}: {X[:, sensor_idx].max()} "
+                                 f"exceeds max: {self.space[sensor_idx, 1]}")
+            if X[:, sensor_idx].min() < self.space[sensor_idx, 0]:
+                raise ValueError(f"Value for sensor {sensor_idx}: {X[:, sensor_idx].min()} "
+                                 f"exceeds min: {self.space[sensor_idx, 0]}")
+
         if fit_means:
             self.means = X.mean(axis=0)
             self.tilecoder = TileCoder(

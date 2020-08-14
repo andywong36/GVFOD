@@ -18,7 +18,7 @@ class test_GVFOD(unittest.TestCase):
         from sklearn.metrics import accuracy_score
 
         from data.dataloader import get_robot_arm_data
-        from gvfod import GVFOD
+        from .. import GVFOD
 
         pct_normal = 0.01  # Percentage of normal data to use in both train/test
         pct_train = 0.6  # Percentage of training data
@@ -28,20 +28,18 @@ class test_GVFOD(unittest.TestCase):
         X_nor = X_nor[:int(len(X_nor) * pct_normal)]
         X_abn = X[y != 0]
 
-        model = GVFOD(
-            space=[[10, 180],  # Angle limits
-                   [-1, 1],  # Torque limits
-                   [0, 300]],  # Tension limits
-
-            divs_per_dim=[4, 4, 4],
-            wrap_idxs=None,
-            int_idxs=None,
-            numtilings=32,
-            discount_rate=0.986,
-            learn_rate=0.005,
-            lamda=0.25,
-            beta=1000,
-            contamination=0.05)
+        model = GVFOD(space=[[10, 180],  # Angle limits
+                             [-1, 1],  # Torque limits
+                             [0, 300]],  # Tension limits
+                      divs_per_dim=[4, 4, 4],
+                      wrap_idxs=None,
+                      int_idxs=None,
+                      numtilings=32,
+                      discount_rate=0.986,
+                      learn_rate=0.005,
+                      lamda=0.25,
+                      beta=1000,
+                      contamination=0.05)
 
         cutoff = int(len(X_nor) * pct_train)
         start = time.time()
@@ -64,7 +62,6 @@ class test_GVFOD(unittest.TestCase):
             np.hstack([normal_pred, abnorm_pred]))
         print("Accuracy score is:", acc)
         # self.assertGreaterEqual(acc, 0.6)
-
 
 
 if __name__ == '__main__':
