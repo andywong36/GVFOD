@@ -47,7 +47,8 @@ lof_exp = Experiment(
     clfname="LOF",
     use_pca=True,
     use_scaling=True,
-    kwargs=save_kwargs(leaf_size=58,
+    kwargs=save_kwargs(n_neighbors=500,
+                       leaf_size=43,
                        metric="chebyshev",
                        **contamination),
 )
@@ -128,7 +129,7 @@ gvfod_exp = Experiment(
                        wrap_idxs=None,
                        int_idxs=None,
                        numtilings=5,
-                       discount_rate= 0.9787171325363924,
+                       discount_rate=0.9787171325363924,
                        learn_rate=0.4821972075639546,
                        lamda=0.2573599546759918,
                        beta=334,

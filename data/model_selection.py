@@ -59,7 +59,7 @@ class TimeSeriesFolds(_BaseKFold):
         n_splits = self.n_splits
 
         trainm = self.min_train_size
-        trainM = self.max_test_size if self.max_test_size is not None else np.inf
+        trainM = self.max_train_size if self.max_train_size is not None else np.inf
         testm = self.min_test_size
         testM = self.max_test_size if self.max_test_size is not None else np.inf
         delay = self.delay

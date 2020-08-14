@@ -76,12 +76,14 @@ lof_exp = Experiment(
     parameters=hp.choice(
         "ctransform",
         [
-            {"leaf_size": hyperopt.pyll.scope.int(hp.quniform("leaf_size_nopca", 10, 100, 1)),
+            {"n_neighbors": hyperopt.pyll.scope.int(hp.quniform("n_neighbors_nopca", 2, 500, 1)),
+             "leaf_size": hyperopt.pyll.scope.int(hp.quniform("leaf_size_nopca", 10, 100, 1)),
              "metric": hp.choice("metric_nopca", ["chebyshev", "l1", "l2"]),
              "contamination": 0.05,
              "n_jobs": 1,
              "transform": None},
-            {"leaf_size": hyperopt.pyll.scope.int(hp.quniform("leaf_size_pca", 10, 100, 1)),
+            {"n_neighbors": hyperopt.pyll.scope.int(hp.quniform("n_neighbors_pca", 2, 500, 1)),
+             "leaf_size": hyperopt.pyll.scope.int(hp.quniform("leaf_size_pca", 10, 100, 1)),
              "metric": hp.choice("metric_pca", ["chebyshev", "l1", "l2"]),
              "contamination": 0.05,
              "n_jobs": 1,

@@ -6,6 +6,8 @@ from numpy.random import randn
 from scipy.interpolate import interp1d
 from scipy.linalg import solve
 
+import exp_gvfod.vis_train_size
+
 
 def get_angle(a, b, c):
     """ Cosine law """
@@ -93,12 +95,12 @@ def visualize_random_functions():
     for s in range(5):
         fgp = gp.gp(seed=s)
         y = np.array([fgp(xi) for xi in x])
-        axs[0].plot(x, y)
+        exp_gvfod.vis_train_size.plot(x, y)
     axs[0].set(xlabel=r'$x$', ylabel=r'$y=f(x)$    $\sigma=1$, $l=0.01$', title="5 Random Samples of a Gaussian Process")
 
     noise = Noise(1)
     for s in range(5):
         fn = noise.noise()
         y = np.array([fn(xi) for xi in x])
-        axs[1].plot(x, y)
+        exp_gvfod.vis_train_size.plot(x, y)
     axs[1].set(xlabel=r'$x$', ylabel=r'$y=f(x)$    $\sigma=1$', title="5 Random Samples of White Noise")

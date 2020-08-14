@@ -15,6 +15,7 @@ import numpy as np
 import pandas as pd
 from scipy.integrate import solve_ivp
 
+import exp_gvfod.vis_train_size
 from controller import PIDControlRobotArm, PIDDisturbRobotArm
 
 
@@ -271,9 +272,9 @@ def plot_sweep(data_dict: dict, param="Parameter Name",
     axcm = fig.add_subplot(gs[:, 1])
 
     for t, df in data_dict.items():
-        ax1.plot(df.index / 2000 * 20, df["angle"], c=m.to_rgba(t))
-        ax2.plot(df.index / 2000 * 20, df["torque"], c=m.to_rgba(t))
-        ax3.plot(df.index / 2000 * 20, df["tension"], c=m.to_rgba(t))
+        exp_gvfod.vis_train_size.plot(df.index / 2000 * 20, df["angle"], c=m.to_rgba(t))
+        exp_gvfod.vis_train_size.plot(df.index / 2000 * 20, df["torque"], c=m.to_rgba(t))
+        exp_gvfod.vis_train_size.plot(df.index / 2000 * 20, df["tension"], c=m.to_rgba(t))
 
     ax1.set(ylabel="Angle (radians)")
     ax2.set(ylabel="Torque (Nm)")
