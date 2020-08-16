@@ -80,4 +80,9 @@ def _create_true_pred_vec_from_count(true_negative, false_positive, true_positiv
 
 
 if __name__ == "__main__":
-    plot_results(r"exp_gvfod\results_for_2020_08_report\exp_train_size_results_v3.json", f1_score)
+    def flip_relevant_elements(metric):
+        def new_metric(pred, true, **kwargs):
+            return metric(1-pred, 1-true, **kwargs)
+        return new_metric
+    plot_results(r"exp_gvfod\results_for_2020_08_report\exp_train_size_results_v5.json",
+                 flip_relevant_elements(recall_score))

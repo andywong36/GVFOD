@@ -65,7 +65,7 @@ class TimeSeriesFolds(_BaseKFold):
         delay = self.delay
 
         if (n_samples - (trainm + delay + testm) < n_splits - 1):
-            raise ValueError
+            raise ValueError("Not enough samples")
 
         # The datum for each fold will be the index of the first test sample
         self.test_starts = np.linspace(trainm + delay, n_samples - testm, n_splits, dtype=int)

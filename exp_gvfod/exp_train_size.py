@@ -38,19 +38,21 @@ def test(file, scaling=True):
 
     n_experiments = 20  # Training data starts are offset between experiments
     # n_experiments = 2
-    minutes_between_exps = 15 # The time between each experiment start
+    minutes_between_exps = 15  # The time between each experiment start
     # n_sweeps = 3000  # Amount of normal data per experiment, includes both training and testing sizes
-    n_sweeps = 3720
+    n_sweeps = 3000 + 720
+    # n_sweeps = 3000 + 1440
     n_splits = 20
     # n_splits = 2
     min_train_size = 50
     min_test_size = 1000
     max_test_size = 1000
     delay = 720  # 720 is 2 hours
+    # delay = 1440
     # hours_of_data = n_sweeps * arm_period / 3600
 
     if os.name == "posix":
-        os.nice(10)
+        os.nice(20)
     else:
         p = psutil.Process(os.getpid())
         p.nice(psutil.IDLE_PRIORITY_CLASS)
