@@ -14,8 +14,7 @@ def learn(phi, y, tde, w, z, gamma, lambda_, alpha):
                      - np.sum(w[phi[t, :]]))
             tde[t] = delta
             np.multiply(z, gamma * lambda_, out=z)
-            for i in phi[t, :]:
-                z[i] += 1
+            z[phi[t, :]] += 1
             np.add(w, alpha * delta * z, out=w)
 
     else:
@@ -34,14 +33,17 @@ def learn(phi, y, tde, w, z, gamma, lambda_, alpha):
 
 
 def learn_ude_naive(phi, y, tde, w, z, gamma, lambda_, alpha, ude, beta):
+    z.fill(0)
+    tde.fill(0)
+    ude.fill(0)
+
     for n in trange(y.shape[0] - 1):
         delta = (y[n + 1]
                  + gamma * np.sum(w[phi[n + 1, :]])
                  - np.sum(w[phi[n, :]]))
         tde[n] = delta
         np.multiply(z, gamma * lambda_, out=z)
-        for i in phi[n, :]:
-            z[i] += 1
+        z[phi[n, :]] += 1
         deltaw = alpha * delta * z
         np.add(w, deltaw, out=w)
 

@@ -2,8 +2,7 @@ import numpy as np
 import pandas as pd
 from tqdm import trange
 
-from . import flearn
-from .learn import learn_ude, learn_ude_naive
+from . import flearn, flearn_ude
 
 
 class TDLambdaGVF:
@@ -65,21 +64,12 @@ class TDLambdaGVF:
         self.tderrors = np.zeros_like(y)
         self.surprise = np.zeros_like(y)
 
-        linear = True
-        if linear:
-            learn_ude(np.ascontiguousarray(x, dtype=np.uintp),
-                      np.ascontiguousarray(y),
-                      self.tderrors, self.w,
-                      self.z, self.gamma,
-                      self.lamda, self.alpha,
-                      self.surprise, self.beta)
-        else:
-            learn_ude_naive(np.ascontiguousarray(x, dtype=np.uintp),
-                            np.ascontiguousarray(y),
-                            self.tderrors, self.w,
-                            self.z, self.gamma,
-                            self.lamda, self.alpha,
-                            self.surprise, self.beta)
+        flearn_ude(np.ascontiguousarray(x, dtype=np.uintp),
+                  np.ascontiguousarray(y),
+                  self.tderrors, self.w,
+                  self.z, self.gamma,
+                  self.lamda, self.alpha,
+                  self.surprise, self.beta)
 
         return self.tderrors, self.surprise
 

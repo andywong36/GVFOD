@@ -98,13 +98,12 @@ class GVFOD(BaseDetector):
         tderrors = np.empty_like(X_stacked)
         for j in range(self.n_sensors):
             print(f"Fitting on sensor {j}")
-            tderrors[:, j], surprise[:, j] = self.models[j].learn_eval(phi, X_stacked[:, j])
-            # tderrors[:, j], surprise[:, j] = self.models[j].learn(phi, X_stacked[:, j])
+            tderrors[:, j], surprise[:, j] = self.models[j].learn(phi, X_stacked[:, j])
 
         # Calculate new surprise values using this trained model, and no training rate
-        # for j in range(self.n_sensors):
-        #     print(f"Evaluating TD errors on sensor {j}")
-        #     tderrors[:, j], surprise[:, j] = self.models[j].eval(phi, X_stacked[:, j])
+        for j in range(self.n_sensors):
+            print(f"Evaluating TD errors on sensor {j}")
+            tderrors[:, j], surprise[:, j] = self.models[j].eval(phi, X_stacked[:, j])
 
         # set decision scores of training data
         self.decision_scores_ = np.empty(n_samples)
@@ -168,3 +167,26 @@ class GVFOD(BaseDetector):
             averaged[i] = np.mean(v)
 
         return averaged
+
+
+class OGVFOD(GVFOD):
+    def fit(self, X, y=None):
+        # data preprocessing
+        n_samples = len(X)
+        X_stacked = self._check_and_preprocess(X, fit_means=True)
+
+        # tiling
+        phi = self.tilecoder.encode(X_stacked)
+
+        # fit the models
+        surprise = np.empty_like(X_stacked)
+        tderrors = np.empty_like(X_stacked)
+        for j in range(self.n_sensors):
+            print(f"Fitting on sensor {j}")
+            tderrors[:, j], surprise[:, j] = self.models[j].learn_eval(phi, X_stacked[:, j])
+
+        self.decision_scores_ = np.empty(n_samples)
+        for i, v in enumerate(np.vsplit(surprise, n_samples)):
+            self.decision_scores_[i] = np.mean(v)
+
+        self._process_decision_scores()

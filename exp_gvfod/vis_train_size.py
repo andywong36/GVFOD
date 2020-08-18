@@ -12,7 +12,7 @@ from exp_gvfod.exp_train_size import arm_period
 def plot_results(json_filepath, metric, linelabel=True):
     from itertools import cycle
 
-    title = "Outlier Detection Training Data Requirements: Outlier OUTLIER"
+    title = "Outlier Detection Training Data Requirements: Outlier OUTLIER \n Delay: DELAY"
     xlabel = r"Training Data (minutes of operation)"
 
     res = pd.read_json(json_filepath)
@@ -46,7 +46,7 @@ def plot_results(json_filepath, metric, linelabel=True):
                 line.set_text(r"$\mathbf{" + line.get_text().split(" ")[-1] + "}$")
         ax.set_ylabel(metric.__name__)
         ax.set_xlabel(xlabel)
-        ax.set_title(title.replace("OUTLIER", abn_str))
+        ax.set_title(title.replace("OUTLIER", abn_str).replace("DELAY", str(res.Delay.unique()[0])))
 
     return res
 
@@ -80,4 +80,9 @@ def _create_true_pred_vec_from_count(true_negative, false_positive, true_positiv
 
 
 if __name__ == "__main__":
-    plot_results(r"exp_gvfod\results_for_2020_08_report\exp_train_size_results_v3.json", f1_score)
+    def flip_relevant_elements(metric):
+        def new_metric(pred, true, **kwargs):
+            return metric(1-pred, 1-true, **kwargs)
+        return new_metric
+    plot_results(r"exp_gvfod\results_for_2020_08_report\exp_train_size_results_v6.json",
+                 flip_relevant_elements(recall_score))
