@@ -33,8 +33,8 @@ class GVFOD(BaseDetector):
         Args:
             space: The min and max values for each sensor. Input data X for fit() and predict() should have a shape of
                 (n_samples, n_sensors * period). Hence, X.shape[1] must be divisible by n_sensors
-            divs_per_dim: The number of divisions to discretize each sensor's data. The smallest resolution that the tiler
-                can handle is divisions[sensor] * num_tilings.
+            divs_per_dim: The number of divisions to discretize each sensor's data. The smallest resolution that the
+                tiler can handle is divisions[sensor] * num_tilings.
             wrap_idxs: Not implemented
             int_idxs: The indices of discrete variables
             numtilings: Sub-discretizations. From tiling software.
@@ -70,6 +70,7 @@ class GVFOD(BaseDetector):
                 self.lamda,
                 self.beta)
             for _ in range(self.n_sensors)]
+        self.means = np.zeros(self.n_sensors)
         self.decision_scores_ = None
 
         super().__init__(contamination)
@@ -87,7 +88,7 @@ class GVFOD(BaseDetector):
 
         # data preprocessing
         n_samples = len(X)
-        X_stacked = self._check_and_preprocess(X)
+        X_stacked = self._check_and_preprocess(X, fit_means=True)
 
         # tiling
         phi = self.tilecoder.encode(X_stacked)
@@ -111,7 +112,7 @@ class GVFOD(BaseDetector):
 
         self._process_decision_scores()
 
-    def _check_and_preprocess(self, X: np.ndarray):
+    def _check_and_preprocess(self, X: np.ndarray, fit_means: bool):
         """ Scales and reshapes data for RL
 
         Args:
@@ -135,16 +136,24 @@ class GVFOD(BaseDetector):
         for sensor_idx in range(self.n_sensors):
             if X[:, sensor_idx].max() > self.space[sensor_idx, 1]:
                 raise ValueError(f"Value for sensor {sensor_idx}: {X[:, sensor_idx].max()} "
-                                 f"exceeds max: {self.space[sensor_idx,1]}")
+                                 f"exceeds max: {self.space[sensor_idx, 1]}")
             if X[:, sensor_idx].min() < self.space[sensor_idx, 0]:
                 raise ValueError(f"Value for sensor {sensor_idx}: {X[:, sensor_idx].min()} "
-                                 f"exceeds min: {self.space[sensor_idx,0]}")
+                                 f"exceeds min: {self.space[sensor_idx, 0]}")
 
-        return np.ascontiguousarray(X)
+        if fit_means:
+            self.means = X.mean(axis=0)
+            self.tilecoder = TileCoder(
+                np.asarray(self.space) - self.means[:, None],
+                self.divs_per_dim,
+                self.numtilings,
+                bias_unit=True
+            )
+        return np.ascontiguousarray(X - self.means)
 
     def decision_function(self, X):
         n_samples = len(X)
-        X_stacked = self._check_and_preprocess(X)
+        X_stacked = self._check_and_preprocess(X, fit_means=False)
 
         phi = self.tilecoder.encode(X_stacked)
 
@@ -158,3 +167,26 @@ class GVFOD(BaseDetector):
             averaged[i] = np.mean(v)
 
         return averaged
+
+
+class OGVFOD(GVFOD):
+    def fit(self, X, y=None):
+        # data preprocessing
+        n_samples = len(X)
+        X_stacked = self._check_and_preprocess(X, fit_means=True)
+
+        # tiling
+        phi = self.tilecoder.encode(X_stacked)
+
+        # fit the models
+        surprise = np.empty_like(X_stacked)
+        tderrors = np.empty_like(X_stacked)
+        for j in range(self.n_sensors):
+            print(f"Fitting on sensor {j}")
+            tderrors[:, j], surprise[:, j] = self.models[j].learn_eval(phi, X_stacked[:, j])
+
+        self.decision_scores_ = np.empty(n_samples)
+        for i, v in enumerate(np.vsplit(surprise, n_samples)):
+            self.decision_scores_[i] = np.mean(v)
+
+        self._process_decision_scores()

@@ -6,8 +6,6 @@ from numpy.random import randn
 from scipy.interpolate import interp1d
 from scipy.linalg import solve
 
-import exp_gvfod.vis_train_size
-
 
 def get_angle(a, b, c):
     """ Cosine law """
@@ -61,15 +59,14 @@ class GP:
 
         self.Sigma12 = np.empty((2, n - 1))
         for i in range(2):
-            for j in range(n-1):
+            for j in range(n - 1):
                 self.Sigma12[i, j] = self._sekernel(i, self.x2[j])
-
 
         self.Sigma22 = np.empty((n - 1, n - 1))
         for i in range(n - 1):
             for j in range(i, n - 1):
                 self.Sigma22[i, j] = self.Sigma22[j, i] = self._sekernel(self.x2[i], self.x2[j])
-        self.Sigma22dot1 = self.Sigma22 -  solve(self.Sigma11, self.Sigma12, assume_a='pos').T @ self.Sigma12
+        self.Sigma22dot1 = self.Sigma22 - solve(self.Sigma11, self.Sigma12, assume_a='pos').T @ self.Sigma12
 
     def _sekernel(self, x1, x2):
         return self.sigma ** 2 * math.exp(- (x1 - x2) ** 2 / (2 * self.l ** 2))
@@ -95,12 +92,12 @@ def visualize_random_functions():
     for s in range(5):
         fgp = gp.gp(seed=s)
         y = np.array([fgp(xi) for xi in x])
-        exp_gvfod.vis_train_size.plot(x, y)
+        axs[0].plot(x, y)
     axs[0].set(xlabel=r'$x$', ylabel=r'$y=f(x)$    $\sigma=1$, $l=0.01$', title="5 Random Samples of a Gaussian Process")
 
     noise = Noise(1)
     for s in range(5):
         fn = noise.noise()
         y = np.array([fn(xi) for xi in x])
-        exp_gvfod.vis_train_size.plot(x, y)
+        axs[1].plot(x, y)
     axs[1].set(xlabel=r'$x$', ylabel=r'$y=f(x)$    $\sigma=1$', title="5 Random Samples of White Noise")
