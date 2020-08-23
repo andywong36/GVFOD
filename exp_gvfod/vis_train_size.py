@@ -6,9 +6,6 @@ import seaborn as sns
 from matplotlib import pyplot as plt
 from sklearn.metrics import precision_score, recall_score, f1_score
 
-from exp_gvfod.exp_train_size import arm_period
-
-
 def plot_results(json_filepath, metric, linelabel=True):
     from itertools import cycle
 

@@ -5,7 +5,10 @@ import pandas as pd
 
 def get_robot_arm_data(return_class_labels=False):
     """
-    Returns multiple sensor data for outlier detection
+    Returns multiple sensor data for outlier detection.
+    First 2000 columns are position (degrees)
+    Second 2000 columns are torque
+    Third 2000 columns are tension
 
     Returns:
         Tuple(X: np.ndarray (6000, n_periods), y: np.ndarray (n_periods, ):

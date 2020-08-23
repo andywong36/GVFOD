@@ -40,9 +40,9 @@ if __name__ == "__main__":
     ax.set(ylabel="Angle (Radians)", xlabel="Time (s)", title="Simulated Data with Global Optimization")
 
     # Delineate train and test results
-    ax.axvline(40)
-    ax.text(15, 0.2, "Training")
-    ax.text(60, 0.2, "Testing")
+    ax.axvline(model.period * 2)
+    ax.text(7.5, 0.2, "Training")
+    ax.text(30, 0.2, "Testing")
     ax.set(ylim=(0.1, 2.295))
 
     print("The training loss is {}".format(

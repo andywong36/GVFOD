@@ -1,25 +1,29 @@
 from functools import partial
 import numpy as np
 
-from system_id import RobotArmDynamics
+from dynamics import RobotArmDynamics
 from utils import GP, Noise
 
 
 class PIDControlRobotArm(RobotArmDynamics):
-    def __init__(self, K_p, T_i, T_d, max_speed=0.56, accel=0.425, **kwargs):
-        self.K_p = K_p
-        self.K_i = self.K_p / T_i
-        self.K_d = self.K_p * T_d
+    _PID_params = {"K_p": 25, "T_i": 2, "T_d": 0.01}
+    optimized_params = {**RobotArmDynamics.optimized_params, **_PID_params}
+
+    max_speed = 1.15
+    accel = 1.7
+
+    def __init__(self, K_p, T_i, T_d, **kwargs):
 
         # Params for control
         self.y = None
         self.dy = None
         self.E = None
 
-        self.max_speed = max_speed
-        self.accel = accel
-
         super().__init__(**kwargs)
+
+        self.K_p = K_p
+        self.K_i = self.K_p / T_i
+        self.K_d = self.K_p * T_d
 
         self._init_setpoint_times()
 
@@ -28,14 +32,14 @@ class PIDControlRobotArm(RobotArmDynamics):
         return np.hstack([super().y0, 0])
 
     def _init_setpoint_times(self):
-        """Assumes a period of 20 seconds"""
+        """Assumes a period of 10 seconds"""
         t_accel = self.max_speed / self.accel
         self.angle_diff_acc = 0.5 * self.accel * t_accel ** 2
         t_max_speed = (self.arm_angle_b - self.arm_angle_a - 2 * self.angle_diff_acc) / self.max_speed
         t_total_moving = t_accel + t_max_speed + t_accel
 
-        times = (0, t_accel, t_max_speed, t_accel, 10 - t_total_moving,
-                 t_accel, t_max_speed, t_accel, 10 - t_total_moving)
+        times = (0, t_accel, t_max_speed, t_accel, 5 - t_total_moving,
+                 t_accel, t_max_speed, t_accel, 5 - t_total_moving)
         self.c = np.cumsum(times)
 
     def ode(self, time, y):
@@ -65,7 +69,7 @@ class PIDControlRobotArm(RobotArmDynamics):
         # Trapezoidal velocity profile.
         # 2 parameters: max_speed, and accel
 
-        t = time % 20  # The time since the beginning of the period.
+        t = time % self.period  # The time since the beginning of the period.
 
         max_speed = self.max_speed  # Max speed of the robot arm
         accel = self.accel  # Acceleration of the robot arm
@@ -92,7 +96,7 @@ class PIDControlRobotArm(RobotArmDynamics):
             raise ValueError("Unspecified time in setpoint")
 
     def dsetpoint(self, time):
-        t = time % 20  # The time since the beginning of the period.
+        t = time % self.period  # The time since the beginning of the period.
 
         max_speed = self.max_speed  # Max speed of the robot arm
         accel = self.accel  # Acceleration of the robot arm
@@ -139,21 +143,17 @@ class PIDControlRobotArm(RobotArmDynamics):
         return self.K_d * (dyr - dy) + self.K_p * (yr - y) + self.K_i * E
 
 
-class PIDDisturbRobotArm(PIDControlRobotArm):
-    def __init__(self, sigma, l, seed=0, use_GP=True, **kwargs):
-        self.sigma = sigma
-        self.l = l
-        self.use_GP = use_GP
-        self.seed = seed
+class DisturbRobotArm(PIDControlRobotArm):
+    _Disturb_params = {"sigma": 0.01, "l": 0.01}
+    optimized_params = {**PIDControlRobotArm.optimized_params, **_Disturb_params}
 
-        self.Noise = Noise(self.sigma)
-        self.GP = GP(sigma=self.sigma, l=self.l)
+    def __init__(self, sigma, l, seed=0, **kwargs):
+
+        self.seed = seed * 997
+        self.GP = GP(sigma=sigma, l=l)
 
         super().__init__(**kwargs)
 
     def torque(self, time):
-        if self.use_GP:
-            ftdisturb = self.GP.gp(seed=int(time // 20)+self.seed)
-        else:
-            ftdisturb = self.Noise.noise()
-        return super().torque(time) + ftdisturb(time % 20 / 20)
+        ftdisturb = self.GP.gp(seed=int(time // self.period) + self.seed)
+        return super().torque(time) + ftdisturb(time % self.period / self.period)

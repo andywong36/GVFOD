@@ -16,7 +16,7 @@ import pandas as pd
 from scipy.integrate import solve_ivp
 
 import exp_gvfod.vis_train_size
-from controller import PIDControlRobotArm, PIDDisturbRobotArm
+from controller import PIDControlRobotArm, DisturbRobotArm
 
 
 def f_torque_from_state(model):
@@ -70,16 +70,11 @@ def get_data(n_periods=10, **kwargs):
     """
 
     # Get robot arm parameters and modify them for failure
-    params = PIDControlRobotArm.optimized_params.copy()
+    params = DisturbRobotArm.optimized_params.copy()
     params.update(kwargs)
 
     # Set up robot arm model
-    # model = PIDControlRobotArm(K_p=30, T_i=0.8, T_d=0.1, **params)
-    if "sigma" not in params:
-        params["sigma"] = 0.01
-    if "l" not in params:
-        params["l"] = 0.01
-    model = PIDDisturbRobotArm(K_p=30, T_i=0.8, T_d=0.1, **params)
+    model = DisturbRobotArm(**params)
 
     # Solve system
     t_eval = np.arange(0, 20 * n_periods, 0.01)
@@ -272,9 +267,9 @@ def plot_sweep(data_dict: dict, param="Parameter Name",
     axcm = fig.add_subplot(gs[:, 1])
 
     for t, df in data_dict.items():
-        exp_gvfod.vis_train_size.plot(df.index / 2000 * 20, df["angle"], c=m.to_rgba(t))
-        exp_gvfod.vis_train_size.plot(df.index / 2000 * 20, df["torque"], c=m.to_rgba(t))
-        exp_gvfod.vis_train_size.plot(df.index / 2000 * 20, df["tension"], c=m.to_rgba(t))
+        ax1.plot(df.index / 2000 * 20, df["angle"], c=m.to_rgba(t))
+        ax2.plot(df.index / 2000 * 20, df["torque"], c=m.to_rgba(t))
+        ax3.plot(df.index / 2000 * 20, df["tension"], c=m.to_rgba(t))
 
     ax1.set(ylabel="Angle (radians)")
     ax2.set(ylabel="Torque (Nm)")
@@ -295,25 +290,25 @@ if __name__ == "__main__":
     normal_data = get_data()
     print(normal_data)
 
-    # data_tensions = sweep_tensions()
-    # plot_sweep(data_tensions, "Base Tension (N)",
-    #                nominal_val=PIDControlRobotArm.base_T,
-    #                optimal_val=PIDControlRobotArm.optimized_params["base_T"])
-    #
-    # data_stiffnesses = sweep_stiffness()
-    # plot_sweep(data_stiffnesses, "Stiffness EA (N)",
-    #            nominal_val=PIDControlRobotArm.EA,
-    #            optimal_val=PIDControlRobotArm.optimized_params["EA"])
-    #
-    # data_frictions = sweep_f2a()
-    # plot_sweep(data_frictions, "f2a (unitless)",
-    #            nominal_val=PIDControlRobotArm.f2a,
-    #            optimal_val=PIDControlRobotArm.optimized_params["f2a"])
-    #
-    # data_slope = sweep_slope()
-    # plot_sweep(data_slope, "slope (Nm)",
-    #            nominal_val=PIDControlRobotArm.slope1,
-    #            optimal_val=PIDControlRobotArm.optimized_params["slope1"])
+    data_tensions = sweep_tensions()
+    plot_sweep(data_tensions, "Base Tension (N)",
+                   nominal_val=PIDControlRobotArm.base_T,
+                   optimal_val=PIDControlRobotArm.optimized_params["base_T"])
+
+    data_stiffnesses = sweep_stiffness()
+    plot_sweep(data_stiffnesses, "Stiffness EA (N)",
+               nominal_val=PIDControlRobotArm.EA,
+               optimal_val=PIDControlRobotArm.optimized_params["EA"])
+
+    data_frictions = sweep_f2a()
+    plot_sweep(data_frictions, "f2a (unitless)",
+               nominal_val=PIDControlRobotArm.f2a,
+               optimal_val=PIDControlRobotArm.optimized_params["f2a"])
+
+    data_slope = sweep_slope()
+    plot_sweep(data_slope, "slope (Nm)",
+               nominal_val=PIDControlRobotArm.slope1,
+               optimal_val=PIDControlRobotArm.optimized_params["slope1"])
 
     data_noise = sweep_noise()
     plot_sweep(data_noise, r"Torque disturbance $\sigma$ (Nm)",

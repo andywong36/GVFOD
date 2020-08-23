@@ -10,7 +10,7 @@ from SALib.sample import saltelli
 from SALib.analyze import sobol
 from tqdm import tqdm
 
-from main import RobotArmDynamics
+from dynamics import RobotArmDynamics
 from system_id import objective
 
 

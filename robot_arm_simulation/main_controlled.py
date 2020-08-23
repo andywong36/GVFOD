@@ -11,7 +11,7 @@ if __name__ == "__main__":
     data = PIDControlRobotArm.data
     kwargs = PIDControlRobotArm.optimized_params
 
-    model = PIDControlRobotArm(K_p=30, T_i=0.8, T_d=0.1, **kwargs)
+    model = PIDControlRobotArm(**kwargs)
 
     # Initial conditions: where the displacement of each pulley is equal (0 net tension), and all 3 pulley are
     # stationary
