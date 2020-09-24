@@ -58,8 +58,9 @@ def main(exp_param, testrun=False, per_run_time=600):
         psutil.Process().nice(psutil.IDLE_PRIORITY_CLASS)
 
     X, y = get_robot_arm_data()
-    ## Reserve half of the abnormal data
+    ## Reserve half of the normal and abnormal data
     X_new, y_new = X[y == 0], y[y == 0]
+    X_new, _, y_new, _ = train_test_split(X_new, y_new, train_size=0.5, shuffle=False)
     for i in np.unique(y):
         if i == 0:
             continue
@@ -118,8 +119,8 @@ def cross_val_od_score(clf_cls: Type[pyod.models.base.BaseDetector], kwargs: dic
 
     # New style cross validation
     tsf = TimeSeriesFolds(n_splits=cv,
-                          min_train_size=3000, max_train_size=3000,
-                          min_test_size=1500, max_test_size=1500,
+                          min_train_size=1000, max_train_size=1000,
+                          min_test_size=1000, max_test_size=1000,
                           delay=0)
 
     def split_add_abnormal(split):

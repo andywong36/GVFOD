@@ -198,7 +198,7 @@ gvfod_exp = Experiment(
     clf=getattr(importlib.import_module("gvfod"), "GVFOD"),
     clfname="GVFOD",
     metric="f1",
-    runs=50,
+    runs=200,
     parameters={
         "space": [[10, 180],  # Angle limits
                   [-1, 1],  # Torque limits

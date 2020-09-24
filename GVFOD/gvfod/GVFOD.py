@@ -73,6 +73,9 @@ class GVFOD(BaseDetector):
         self.means = np.zeros(self.n_sensors)
         self.decision_scores_ = None
 
+        self.tderrors = None
+        self.surprises = None
+
         super().__init__(contamination)
 
     def fit(self, X, y=None):
@@ -147,7 +150,7 @@ class GVFOD(BaseDetector):
                 np.asarray(self.space) - self.means[:, None],
                 self.divs_per_dim,
                 self.numtilings,
-                bias_unit=True
+                bias_unit=False
             )
         return np.ascontiguousarray(X - self.means)
 
@@ -166,6 +169,8 @@ class GVFOD(BaseDetector):
         for i, v in enumerate(np.vsplit(surprise, n_samples)):
             averaged[i] = np.mean(v)
 
+        self.tderrors, self.surprises = tderrors, surprise
+
         return averaged
 
 
@@ -173,7 +178,8 @@ class OGVFOD(GVFOD):
     def fit(self, X, y=None):
         # data preprocessing
         n_samples = len(X)
-        X_stacked = self._check_and_preprocess(X, fit_means=True)
+        self._check_and_preprocess(X[:n_samples//10], fit_means=True)
+        X_stacked = self._check_and_preprocess(X, fit_means=False)
 
         # tiling
         phi = self.tilecoder.encode(X_stacked)
@@ -182,11 +188,14 @@ class OGVFOD(GVFOD):
         surprise = np.empty_like(X_stacked)
         tderrors = np.empty_like(X_stacked)
         for j in range(self.n_sensors):
-            print(f"Fitting on sensor {j}")
-            tderrors[:, j], surprise[:, j] = self.models[j].learn_eval(phi, X_stacked[:, j])
+            # print(f"Fitting on sensor {j}")
+            tderrors[:, j], surprise[:, j] = self.models[j].learn(phi, X_stacked[:, j])
 
         self.decision_scores_ = np.empty(n_samples)
         for i, v in enumerate(np.vsplit(surprise, n_samples)):
             self.decision_scores_[i] = np.mean(v)
 
         self._process_decision_scores()
+
+    def decision_function(self, X):
+        raise NotImplementedError("OGVFOD is meant to be a single pass through the data (fit)")

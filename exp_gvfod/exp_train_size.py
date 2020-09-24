@@ -1,6 +1,7 @@
 """ Evaluate training size needs of different algorithms"""
 import os
 import psutil
+import sys
 import time
 
 from multiprocessing import pool, RawArray
@@ -11,6 +12,7 @@ from tqdm import tqdm
 
 from sklearn.preprocessing import StandardScaler
 from sklearn import decomposition
+from sklearn.model_selection import train_test_split
 
 import data.dataloader as dtl
 import data.model_selection as ms
@@ -33,23 +35,20 @@ def init_data(X_nor, X_nor_scaled, y_nor, X_nor_shape,
     global_data["X_abn_shape"] = X_abn_shape
 
 
-def test(file, scaling=True):
+def test(file, delay, use_default_params, train_loss=False):
     """ Main testing function """
 
     n_experiments = 20  # Training data starts are offset between experiments
-    # n_experiments = 2
-    minutes_between_exps = 15  # The time between each experiment start
-    # n_sweeps = 3000  # Amount of normal data per experiment, includes both training and testing sizes
-    n_sweeps = 3000 + 720
-    # n_sweeps = 3000 + 1440
+    minutes_between_exps = 10  # The time between each experiment start
+    # delay = 0  # 720 is 2 hours
+    n_sweeps = 2600 + delay  # Amount of normal data per experiment, includes both training and testing sizes
+    # Note that hours_of_data = n_sweeps * arm_period / 3600
     n_splits = 20
-    # n_splits = 2
+
     min_train_size = 50
-    min_test_size = 1000
-    max_test_size = 1000
-    delay = 720  # 720 is 2 hours
-    # delay = 1440
-    # hours_of_data = n_sweeps * arm_period / 3600
+    min_test_size = 600
+    max_test_size = 600
+    n_param_test = 1000  # the [minimum] test size used in parameter sweeping.
 
     if os.name == "posix":
         os.nice(20)
@@ -58,10 +57,33 @@ def test(file, scaling=True):
         p.nice(psutil.IDLE_PRIORITY_CLASS)
 
     start = time.time()
-    save_directory = "scratch/train_size_test_raw_results/"
 
     ## Read all the data and store it in global memory
     X, y, class_labels = dtl.get_robot_arm_data(return_class_labels=True)
+
+    ## Use only the data that was not used for training in parameter search.
+    # Since parameter search used only the first 50% of the data, we can use
+    # the last 50%, as well as the last 1000 samples (testing) in the first 50%.
+    _X_list = []
+    _y_list = []
+    for i in np.unique(y):
+        X_train, X_holdout, y_train, y_holdout = train_test_split(X[y == i], y[y == i], train_size=0.5, shuffle=False)
+        if not train_loss:
+            if i == 0:
+                # This data was never trained on in hyperparameter sweeping.
+                _X_list.append(X_train[-n_param_test:])
+                _y_list.append(y_train[-n_param_test:])
+            _X_list.append(X_holdout)
+            _y_list.append(y_holdout)
+        else:
+            _X_list.append(X_train)
+            _y_list.append(y_train)
+            if i == 0:
+                # This data was never trained on in hyperparameter sweeping.
+                _X_list.append(X_holdout[:n_param_test])
+                _y_list.append(y_holdout[:n_param_test])
+    X = np.concatenate(_X_list)
+    y = np.concatenate(_y_list)
 
     X_nor, y_nor = X[y == 0], y[y == 0]
     X_abn, y_abn = X[y != 0], y[y != 0]
@@ -91,7 +113,7 @@ def test(file, scaling=True):
     X_abn_ss_r = raw_array_from_ndarray(X_abn_ss)
     y_abn_r = raw_array_from_ndarray(y_abn)
 
-    p = pool.Pool(processes=8, initializer=init_data, initargs=[X_nor_r, X_nor_ss_r, y_nor_r, X_nor.shape,
+    p = pool.Pool(processes=32, initializer=init_data, initargs=[X_nor_r, X_nor_ss_r, y_nor_r, X_nor.shape,
                                                                  X_abn_r, X_abn_ss_r, y_abn_r, X_abn.shape])
     jobs = []  # Contains the returns from pool.apply_async. Iterate through these to get the Series.
 
@@ -130,8 +152,26 @@ def test(file, scaling=True):
     for exp_start in reversed(experiment_starts):
         assert exp_start + n_sweeps < len(X_nor)  # check that there is enough data
         for i, (train_idx, test_idx) in enumerate(splitter.split(X_nor[exp_start:exp_start + n_sweeps])):
-            for exp in [if_exp, ocsvm_exp, lof_exp, abod_exp, kNN_exp, hbos_exp, mcd_exp, pca_exp,
-                        markov_exp, gvfod_exp]:
+            for exp in [
+                if_exp, ocsvm_exp, lof_exp, abod_exp, kNN_exp, hbos_exp, mcd_exp, pca_exp,
+                markov_exp,
+                gvfod_exp
+            ]:
+                if use_default_params:
+                    if exp.clfname not in ["GVFOD", "MarkovChain"]:
+                        contamination = exp.kwargs["contamination"]
+                        exp.kwargs.clear()
+                        exp.kwargs["contamination"] = contamination
+                    elif exp.clfname == "GVFOD":
+                        exp.kwargs["divs_per_dim"] = [10, 10, 10]
+                        exp.kwargs["numtilings"] = 10
+                        exp.kwargs["discount_rate"] = 0.9
+                        exp.kwargs["learn_rate"] = 0.01
+                        exp.kwargs["lamda"] = 0.1
+                        exp.kwargs["beta"] = 250
+                    else:
+                        pass  # Keep MarkovChain experiment the same.
+
                 jobs.append(
                     p.apply_async(
                         process,
@@ -201,9 +241,18 @@ def process(experiment, train_idx, test_idx, class_labels):
     model.fit(X_nor_train)
 
     # Make predictions
-    X_test = np.concatenate((X_nor_test, X_abn), axis=0)
-    y_pred = model.predict(X_test)
     y_test = np.concatenate((y_nor_test, y_abn), axis=0)
+    X_test = np.concatenate((X_nor_test, X_abn), axis=0)
+    if experiment.clfname in ["GVFOD", "MarkovChain"]:
+        y_pred = np.zeros_like(y_test)
+        for i, outlier in enumerate(np.unique(y_abn)):
+            selection = (y_test == 0) | (y_test == outlier)
+            prediction = model.predict(X_test[selection])
+            # if i > 0:
+            #     assert np.array_equal(prediction[:len(y_nor_test)], y_pred[:len(y_nor_test)])
+            y_pred[selection] = prediction
+    else:
+        y_pred = model.predict(X_test)
 
     for cls_idx, cls_name in enumerate(class_labels):
         # Calculate the metrics for each outlier class separately
@@ -216,5 +265,19 @@ def process(experiment, train_idx, test_idx, class_labels):
 
 
 if __name__ == '__main__':
-    test("exp_gvfod/exp_train_size_results.json")
-    # plot("scratch/train_size_test_raw_results/")
+    delayarg = int(sys.argv[1])
+    defaultarg = bool(int(sys.argv[2]))
+    if len(sys.argv) == 4:
+        trainlossarg = bool(int(sys.argv[3]))
+
+
+        test(f"exp_gvfod/results_for_2020_08_report/exp_train_size_"
+             f"delay_{delayarg}_"
+             f"default_{defaultarg}_"
+             f"trainloss_{trainlossarg}.json",
+             delayarg, defaultarg, trainlossarg)
+    else:
+        test(f"exp_gvfod/results_for_2020_08_report/exp_train_size_"
+             f"delay_{delayarg}_"
+             f"default_{defaultarg}.json",
+             delayarg, defaultarg)

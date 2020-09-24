@@ -354,17 +354,27 @@ def plot_gradual_failure(npy_file):
     failure_type = filename.split("_")[0]
     steps = int(filename.split("_")[-1].split(".")[0]) * 2000
     a = np.load(npy_file)
-    fig, axs = plt.subplots(4, 1)
-    axs[0].set_title(failure_type)
-    for i in range(4):
-        axs[i].plot(np.arange(steps, dtype=float) / 2000 * PIDControlRobotArm.period, a[:, i])
-
-    # Plot some empirical data
+    fig, axs = plt.subplots(4, 1, figsize=(12, 8))
     X, y = get_robot_arm_data()
     X[:, :2000] *= 2 * np.pi / 360
     for i in range(3):
         axs[i + 1].plot(np.arange(steps, dtype=float) / 2000 * PIDControlRobotArm.period,
-                        X[:steps // 2000, i * 2000: (i + 1) * 2000].flatten(order="C"))
+                        X[10:10 + steps // 2000, i * 2000: (i + 1) * 2000].flatten(order="C"), label="Empirical",c="red")
+    axs[0].set_title("Simulating Gradual Non-stationary Failure")
+    for i in range(4):
+        axs[i].plot(np.arange(steps, dtype=float) / 2000 * PIDControlRobotArm.period, a[:, i],
+                    label="Simulator", c="blue")
+
+    # Plot some empirical data
+
+    for i in range(4):
+        axs[i].legend()
+
+    axs[0].set(ylabel="Static Tension (N)")
+    axs[1].set(ylabel="Arm Position (rad)")
+    axs[2].set(ylabel="Torque (Nm)")
+    axs[3].set(ylabel="Tension (N)", xlabel="Time (s)")
+
 
 
 
@@ -384,5 +394,5 @@ if __name__ == "__main__":
         for r in results:
             r.get()
         p.join()
-    else:g
+    else:
         raise OSError('This only works on linux')

@@ -24,6 +24,10 @@ class TileCoder:
         self.tilings_to_features = np.prod(self.num_tiles_per_dim) * np.arange(self.num_tilings)
 
     def encode(self, obs):
+        # bounds checking
+        for i in range(obs.shape[-1]):
+            assert np.all(obs[..., i] <= self.space[i, 1]) and np.all(obs[..., i] >= self.space[i, 0])
+
         # Compute the coordinates in each tiling of the tile containing the observation:
         # Allow obs to be an array-like with shape (d,) or (n, d)
         # Note that np.asarray(obs)[..., None, :] and tiling_coords has shape of either (1, d) or (n, 1, d),

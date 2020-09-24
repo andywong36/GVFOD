@@ -143,7 +143,7 @@ def sweep_stiffness():
     """
     pool = Pool()
 
-    stiffnesses = np.linspace(10000, 200000, 10)
+    stiffnesses = np.linspace(1000, 75000, 10)
     results = pool.imap(_eval_stiffness, stiffnesses)
 
     data_stiffnesses = {}
@@ -156,7 +156,7 @@ def sweep_stiffness():
     return data_stiffnesses
 
 
-def _eval_f1a(f2a):
+def _eval_f2a(f2a):
     """ See sweep_f2a() """
     return get_data(n_periods=2, f2a=f2a)
 
@@ -172,8 +172,8 @@ def sweep_f2a():
     """
     pool = Pool()
 
-    frictions = np.linspace(0.00007716518208965043 / 1.44 / 2, 0.00007716518208965043 / 1.44 * 10, 10)
-    results = pool.imap(_eval_f1a, frictions)
+    frictions = np.linspace(0.0005679882243595715 / 8, 0.0005679882243595715 * 10, 10)
+    results = pool.imap(_eval_f2a, frictions)
 
     data_frictions = {}
     for f2a, res in zip(frictions, results):
@@ -201,7 +201,7 @@ def sweep_slope():
         """
     pool = Pool()
 
-    slopes = np.linspace(-0.23723147775251083 * 2, 0, 10)
+    slopes = np.linspace(-0.34053731214564237 * 2, 0, 10)
     results = pool.imap(_eval_slope, slopes)
 
     data_slopes = {}
@@ -255,7 +255,7 @@ def plot_sweep(data_dict: dict, param="Parameter Name",
 
     norm = mpl.colors.Normalize(vmin=min(data_dict.keys()),
                                 vmax=max(data_dict.keys()))
-    cmap = cm.hot
+    cmap = cm.winter
 
     m = cm.ScalarMappable(norm=norm, cmap=cmap)
 
@@ -277,8 +277,8 @@ def plot_sweep(data_dict: dict, param="Parameter Name",
 
     plt.colorbar(m, cax=axcm)
     if (nominal_val is not None) and (optimal_val is not None):
-        axcm.axhline(nominal_val, ls="--", c="blue", lw=2)
-        axcm.axhline(optimal_val, c="blue", lw=2)
+        axcm.axhline(nominal_val, ls="--", c="yellow", lw=2)
+        axcm.axhline(optimal_val, c="yellow", lw=2)
     axcm.set(title=param)
 
     plt.show()

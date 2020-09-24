@@ -84,3 +84,8 @@ class TDLambdaGVF:
         surprise = np.abs(np.divide(self._tde_ma(beta), (std + self.FLOATEPS)))
         surprise[[0, 1, -1]] = 0
         return surprise
+
+    # def _stdsurprise(self, beta):
+    #     surprise =  np.abs(np.divide(self._tde_ma(beta), self.stdtderror))
+    #     surprise[[0, 1, -1]] = 0
+    #     return surprise

@@ -33,17 +33,23 @@ if __name__ == "__main__":
     print("Done")
 
     # Plot results
-    f, ax = plt.subplots(figsize=(12, 4))
-    ax.plot(model.data["Time"], model.data["Angle"], 'r', label="True Angle")
-    ax.plot(model.data["Time"], results.y[4, :], 'b', label=f"Calculated Angle")
-    ax.legend()
-    ax.set(ylabel="Angle (Radians)", xlabel="Time (s)", title="Simulated Data with Global Optimization")
+    f, axs = plt.subplots(2, 1, figsize=(12, 8))
+    axs[0].plot(model.data["Time"], model.data["Torque"], 'r', label="Input Torque")
+    axs[0].legend()
+    axs[0].set(ylabel="Torque (Nm)", title="Simulator Input")
+
+    axs[1].plot(model.data["Time"], model.data["Angle"], 'r', label="True Angle")
+    axs[1].plot(model.data["Time"], results.y[4, :], 'b', label=f"Calculated Angle")
+    axs[1].legend()
+    axs[1].set(ylabel="Angle (Radians)", xlabel="Time (s)", title="Simulator Output vs. Real Output")
 
     # Delineate train and test results
-    ax.axvline(model.period * 2)
-    ax.text(7.5, 0.2, "Training")
-    ax.text(30, 0.2, "Testing")
-    ax.set(ylim=(0.1, 2.295))
+    axs[1].axvline(model.period * 2)
+    axs[1].text(7.5, 0.2, "Training")
+    axs[1].text(30, 0.2, "Testing")
+    axs[1].set(ylim=(0.1, 2.295))
+
+    plt.tight_layout()
 
     print("The training loss is {}".format(
         np.sum((results.y[4, :4000] - model.data["Angle"].values[:4000]) ** 2)
