@@ -149,7 +149,7 @@ class RobotArmDynamics:
 
         # To compare training and testing data, extended testing data is available
         if use_extended_data:
-            self.data_ext = pd.read_csv("test_data_extended.csv")[:8000]
+            self.data_ext = pd.read_csv("test_data_extended.csv")[:12000]
             self.data_ext.columns = self.data.columns
             self.data = self.data_ext
 

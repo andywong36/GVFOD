@@ -5,9 +5,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from controller import PIDControlRobotArm
+from main_failuregen import f_tension_from_state
 
 if __name__ == "__main__":
-
     data = PIDControlRobotArm.data
     kwargs = PIDControlRobotArm.optimized_params
 
@@ -42,27 +42,43 @@ if __name__ == "__main__":
 
     setpoint_f = model.setpoint
     # Plot results
-    fig, axs = plt.subplots(3, 1)
+    fig, axs = plt.subplots(3, 1, figsize=(12, 8))
     axs[0].plot(data["Time"], data["Angle"], 'r', label="Empirical Data")
     axs[0].plot(data["Time"], results.y[4, :], 'b', label=f"Process Value")
     axs[0].plot(data["Time"], data["Time"].map(setpoint_f), label=f"Setpoint")
     axs[0].legend()
     axs[0].set(ylabel="Angle (Radians)", xlabel="Time (s)",
-               title="PID Control on Simulated Robot Arm")
+               # title="PID Control on Simulated Robot Arm",
+               )
 
-    velocity_scaler = len(data["Time"]) / data["Time"].iloc[-1]
-    axs[1].plot(data["Time"], data["Angle"].diff() * velocity_scaler, 'r', label="Empirical Velocity")
-    axs[1].plot(data["Time"], results.y[5, :], 'b', label="Process Value Velocity")
+    # velocity_scaler = len(data["Time"]) / data["Time"].iloc[-1]
+    # axs[1].plot(data["Time"], data["Angle"].diff() * velocity_scaler, 'r', label="Empirical Velocity")
+    # axs[1].plot(data["Time"], results.y[5, :], 'b', label="Process Value Velocity")
+    # axs[1].legend()
+    # axs[1].set(ylabel="Velocity (rad/s)", xlabel="Time (s)")
+
+    axs[1].plot(data["Time"], data["Torque"], 'r', label="Empirical Torque")
+    axs[1].plot(data["Time"], list(map(model.control,
+                                       data["Time"], results.y[4], results.y[5], results.y[6]
+                                       )), 'b', label="Simulated Torque")
     axs[1].legend()
-    axs[1].set(ylabel="Velocity (rad/s)", xlabel="Time (s)")
+    axs[1].set(ylabel="Torque (Nm)", xlabel="Time (s)")
 
-    axs[2].plot(data["Time"], data["Torque"], 'r', label="Empirical Torque")
-    axs[2].plot(data["Time"], list(map(model.control,
-        data["Time"], results.y[4], results.y[5], results.y[6]
-    )), 'b', label="Simulated Torque")
+    state = np.vstack([results.t, results.y])
+    axs[2].plot(data["Time"], data["Tension"], 'r', label="Empirical Tension")
+    axs[2].plot(data["Time"],
+                np.apply_along_axis(
+                    f_tension_from_state(model),
+                    arr=state,
+                    axis=0
+                ),
+                'b',
+                label="Simulated Tension")
+
     axs[2].legend()
-    axs[2].set(ylabel="Torque (Nm)", xlabel="Time (s)")
+    axs[2].set(ylabel="Tension (N)", xlabel="Time (s)")
 
+    plt.tight_layout()
 
     print("The loss is {}".format(
         np.sum((results.y[4, :] - data["Angle"].values) ** 2)

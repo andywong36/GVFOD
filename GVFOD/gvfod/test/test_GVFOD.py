@@ -6,7 +6,7 @@ import numpy as np
 from sklearn.metrics import accuracy_score
 
 from data.dataloader import get_robot_arm_data
-from gvfod import GVFOD, OGVFOD
+from gvfod import GVFOD, UDE
 
 GVFOD_results = {
     0.05: 0.06523418547694934,
@@ -74,18 +74,18 @@ class test_GVFOD(unittest.TestCase):
             X_nor = X_nor[:int(len(X_nor) * pct_normal)]
             X_abn = X[y != 0]
 
-            model = OGVFOD(space=[[10, 180],  # Angle limits
-                                 [-1, 1],  # Torque limits
-                                 [0, 300]],  # Tension limits
-                          divs_per_dim=[4, 4, 4],
-                          wrap_idxs=None,
-                          int_idxs=None,
-                          numtilings=8,
-                          discount_rate=0.986,
-                          learn_rate=0.005,
-                          lamda=0.25,
-                          beta=1000,
-                          contamination=0.05)
+            model = UDE(space=[[10, 180],  # Angle limits
+                               [-1, 1],  # Torque limits
+                               [0, 300]],  # Tension limits
+                        divs_per_dim=[4, 4, 4],
+                        wrap_idxs=None,
+                        int_idxs=None,
+                        numtilings=8,
+                        discount_rate=0.986,
+                        learn_rate=0.005,
+                        lamda=0.25,
+                        beta=1000,
+                        contamination=0.05)
 
             cutoff = int(len(X_nor) * pct_train)
             start = time.time()

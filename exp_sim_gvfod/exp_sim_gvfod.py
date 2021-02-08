@@ -2,7 +2,7 @@ import os
 
 import numpy as np
 from pyod.models.lof import LOF
-from gvfod import GVFOD, OGVFOD
+from gvfod import GVFOD, UDE
 from sklearn.decomposition import PCA
 
 from data.model_selection import TimeSeriesFolds
@@ -33,7 +33,7 @@ def run(file):
 
     print(X.shape, y.shape, profile.shape)
 
-    tsf = TimeSeriesFolds(6, 200, None, 200, None, delay=0)
+    tsf = TimeSeriesFolds(10, 200, None, 200, None, delay=0)
     odmodel = LOF()
     rlmodel = GVFOD(
         space=[
@@ -49,7 +49,7 @@ def run(file):
         learn_rate=0.1777732644755987,
         lamda=0.6588037848393622,
         beta=15, )
-    ogvfod = OGVFOD(
+    ude = UDE(
         space=[
             [0., 2.5],  # Angle limits
             [-1, 1],  # Torque limits
@@ -66,9 +66,9 @@ def run(file):
     )
 
     for i, (train_idx, test_idx) in enumerate(tsf.split(X[y == 0])):
-        if i != 1:
+        if i != 3:
             continue
-        ylabel = "Static Tension (baseT)"
+        ylabel = "Static Tension ($T_{base}$)"
         print(len(train_idx))
         dc = PCA(20, whiten=True)
         dc.fit(X[train_idx])
@@ -80,25 +80,29 @@ def run(file):
         odmodel.fit(training_pca)
         outlier_scores = odmodel.decision_function(np.vstack([training_pca, testing_pca]))
 
-        fig, axs = plt.subplots(2, 1)
+        fig, axs = plt.subplots(4, 1, figsize=(10,8))
         axs[0].plot(np.arange(len(profile)) / 200, profile)
-        axs[0].set(title=f"Algorithm: Local Outlier Factor", ylabel=ylabel)
+        # axs[0].set(title=f"Algorithm: Local Outlier Factor", ylabel=ylabel)
+        axs[0].set(ylabel=ylabel)
         axs[1].plot(np.arange(len(train_idx)) * 10, outlier_scores[:len(train_idx)], label="Training")
         axs[1].plot(np.arange(len(train_idx), len(outlier_scores)) * 10, outlier_scores[len(train_idx):],
                     label="Testing")
-        axs[1].axhline(odmodel.threshold_, label="Outlier Threshold")
-        axs[1].legend()
-        axs[1].set(xlabel="Time (s)", ylabel="Outlier Score")
+        axs[1].axhline(odmodel.threshold_, c="red", label="Outlier Threshold")
+        axs[1].legend(loc="upper left")
+        axs[1].set(ylabel=r"$score_{LOF}$")
 
         rlmodel.fit(training)
-        outlier_scores = rlmodel.decision_function(np.vstack([training, testing]))
+        outlier_scores = np.hstack([
+            rlmodel.decision_scores_,
+            rlmodel.decision_function(testing)
+            ])
 
         # fig, axs = plt.subplots(5, 1)
-        fig, axs = plt.subplots(2, 1)
-        axs[0].plot(np.arange(len(profile)) / 200, profile)
-        axs[0].set(title=f"Algorithm: GVFOD", ylabel=ylabel)
-        axs[1].plot(np.arange(len(train_idx)) * 10, outlier_scores[:len(train_idx)], label="Training")
-        axs[1].plot(np.arange(len(train_idx), len(outlier_scores)) * 10, outlier_scores[len(train_idx):],
+        # fig, axs = plt.subplots(2, 1)
+        # axs[0].plot(np.arange(len(profile)) / 200, profile)
+        # axs[0].set(title=f"Algorithm: GVFOD", ylabel=ylabel)
+        axs[2].plot(np.arange(len(train_idx)) * 10, outlier_scores[:len(train_idx)], label="Training")
+        axs[2].plot(np.arange(len(train_idx), len(outlier_scores)) * 10, outlier_scores[len(train_idx):],
                     label="Testing")
         # for i, label in enumerate(
         #         ["position", "torque", "tension"]
@@ -110,19 +114,19 @@ def run(file):
         #     axs[i + 2].plot(np.arange(len(outlier_scores)) * 10,
         #                     [x.mean() for x in np.split(rlmodel.surprises[:, i], len(outlier_scores))],
         #                     label=label)
-        axs[1].axhline(rlmodel.threshold_, label="Outlier Threshold")
-        axs[1].legend()
-        axs[1].set(xlabel="Time (s)", ylabel="Outlier Score")
+        axs[2].axhline(rlmodel.threshold_, c="r", label="Outlier Threshold", )
+        axs[2].legend(loc="upper left")
+        axs[2].set(ylabel=r"$score_{GVFOD}$")
 
-        ogvfod.fit(np.vstack([training, testing]))
-        outlier_scores = ogvfod.decision_scores_
+        ude.fit(np.vstack([training, testing]))
+        outlier_scores = ude.decision_scores_
 
-        fig, axs = plt.subplots(2, 1)
-        axs[0].plot(np.arange(len(profile)) / 200, profile)
-        axs[0].set(title=f"Algorithm: Surprise", ylabel=ylabel)
-        axs[1].plot(np.arange(len(outlier_scores)) * 10, outlier_scores, label="Training")
-        axs[1].set_ylim(0.85, 1.1)
-        axs[1].set(ylabel="Surprise / UDE", xlabel="Time (s)")
+        # fig, axs = plt.subplots(2, 1)
+        # axs[0].plot(np.arange(len(profile)) / 200, profile)
+        # axs[0].set(title=f"Algorithm: Surprise", ylabel=ylabel)
+        axs[3].plot(np.arange(len(outlier_scores)) * 10, outlier_scores, label="Training")
+        axs[3].set_ylim(0.85, 1.1)
+        axs[3].set(ylabel="Surprise / UDE", xlabel="Time (s)")
     return X
 
 

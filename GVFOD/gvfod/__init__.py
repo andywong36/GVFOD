@@ -7,4 +7,4 @@ except ImportError:
     from .learn import learn_ude as flearn_ude
 
 from .GVFOD import GVFOD
-from .GVFOD import OGVFOD
+from .GVFOD import UDE

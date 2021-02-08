@@ -174,7 +174,7 @@ class GVFOD(BaseDetector):
         return averaged
 
 
-class OGVFOD(GVFOD):
+class UDE(GVFOD):
     def fit(self, X, y=None):
         # data preprocessing
         n_samples = len(X)
@@ -198,4 +198,4 @@ class OGVFOD(GVFOD):
         self._process_decision_scores()
 
     def decision_function(self, X):
-        raise NotImplementedError("OGVFOD is meant to be a single pass through the data (fit)")
+        raise NotImplementedError("UDE is meant to be a single pass through the data (fit)")

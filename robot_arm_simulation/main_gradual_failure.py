@@ -360,7 +360,6 @@ def plot_gradual_failure(npy_file):
     for i in range(3):
         axs[i + 1].plot(np.arange(steps, dtype=float) / 2000 * PIDControlRobotArm.period,
                         X[10:10 + steps // 2000, i * 2000: (i + 1) * 2000].flatten(order="C"), label="Empirical",c="red")
-    axs[0].set_title("Simulating Gradual Non-stationary Failure")
     for i in range(4):
         axs[i].plot(np.arange(steps, dtype=float) / 2000 * PIDControlRobotArm.period, a[:, i],
                     label="Simulator", c="blue")
@@ -370,10 +369,13 @@ def plot_gradual_failure(npy_file):
     for i in range(4):
         axs[i].legend()
 
+    # axs[0].set_title("Simulating Gradual Non-stationary Failure")
     axs[0].set(ylabel="Static Tension (N)")
     axs[1].set(ylabel="Arm Position (rad)")
     axs[2].set(ylabel="Torque (Nm)")
     axs[3].set(ylabel="Tension (N)", xlabel="Time (s)")
+
+    plt.tight_layout()
 
 
 
@@ -388,7 +390,12 @@ if __name__ == "__main__":
 
         results = []
         p = Pool(processes=4)
-        for f in [run_baseT_exp, run_EA_exp, run_f2a_exp, run_slope1_exp]:
+        for f in [
+            run_baseT_exp,
+            # run_EA_exp,
+            # run_f2a_exp,
+            # run_slope1_exp
+        ]:
             results.append(p.apply_async(f))
         p.close()
         for r in results:

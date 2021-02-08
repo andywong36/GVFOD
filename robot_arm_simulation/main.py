@@ -8,6 +8,7 @@ from system_id import *
 
 if __name__ == "__main__":
     kwargs = RobotArmDynamics.optimized_params
+    # kwargs = {}
     model = RobotArmDynamics(use_extended_data=True, **kwargs)
 
     # Initial conditions: where the displacement of each pulley is equal (0 net tension), and all 3 pulley are
@@ -33,7 +34,7 @@ if __name__ == "__main__":
     print("Done")
 
     # Plot results
-    f, axs = plt.subplots(2, 1, figsize=(12, 8))
+    f, axs = plt.subplots(2, 1, figsize=(10, 6))
     axs[0].plot(model.data["Time"], model.data["Torque"], 'r', label="Input Torque")
     axs[0].legend()
     axs[0].set(ylabel="Torque (Nm)", title="Simulator Input")
@@ -45,9 +46,10 @@ if __name__ == "__main__":
 
     # Delineate train and test results
     axs[1].axvline(model.period * 2)
-    axs[1].text(7.5, 0.2, "Training")
-    axs[1].text(30, 0.2, "Testing")
+    axs[1].text(7.5, 0.15, "Training")
+    axs[1].text(40, 0.15, "Testing")
     axs[1].set(ylim=(0.1, 2.295))
+    # axs[1].set(ylim=(0.1, 10))
 
     plt.tight_layout()
 
@@ -55,6 +57,10 @@ if __name__ == "__main__":
         np.sum((results.y[4, :4000] - model.data["Angle"].values[:4000]) ** 2)
     ))
 
-    print("The testing loss is {}".format(
-        np.sum((results.y[4, 4000:] - model.data["Angle"].values[4000:]) ** 2)
+    print("The first testing loss is {}".format(
+        np.sum((results.y[4, 4000:8000] - model.data["Angle"].values[4000:8000]) ** 2)
+    ))
+
+    print("The second testing loss is {}".format(
+        np.sum((results.y[4, 8000:] - model.data["Angle"].values[8000:]) ** 2)
     ))
