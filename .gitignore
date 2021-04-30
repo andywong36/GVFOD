@@ -205,8 +205,8 @@ fabric.properties
 *.py~
 
 # VSCODE files
-*.vscode/*
-*.idea/*
+**/.vscode
+**/.idea
 
 
 # Specific files
@@ -217,6 +217,16 @@ data/pickles/robotarm*
 *.df
 non_stationarity.ipynb
 exp_gvfod/results_for*
+data/servo/
+exp_servo/
+experiment_sensitivity/
+exp_gvfod/vis_non_stationarity.py
+data/*.png
+data/robot_arm_1/
+data/robot_arm_gradual_failure_sim/
+robot_arm_simulation/gradual_failure/*.npy
+robot_arm_simulation/*results*.pkl
+robot_arm_simulation/test_data_extended.csv
 
 # Consider adding this - since it's a demo of the usage of this package
 Demo.ipynb
