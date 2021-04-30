@@ -212,5 +212,11 @@ fabric.properties
 # Specific files
 data/data_to_pandas.py
 data/pickles/machine*
+data/pickles/robotarm*
 *.dat
 *.df
+non_stationarity.ipynb
+exp/gvfod/results_for*
+
+# Consider adding this - since it's a demo of the usage of this package
+Demo.ipynb
