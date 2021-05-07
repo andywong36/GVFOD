@@ -4,12 +4,17 @@ import time
 import matplotlib.pyplot as plt
 from scipy import integrate
 
+from data.dataloader import get_robotarm_sim_data
+
 from system_id import *
 
 if __name__ == "__main__":
     kwargs = RobotArmDynamics.optimized_params
     # kwargs = {}
-    model = RobotArmDynamics(use_extended_data=True, **kwargs)
+    model = RobotArmDynamics(
+        replacement_data=get_robotarm_sim_data("normal", 500, 4),
+        **kwargs
+    )
 
     # Initial conditions: where the displacement of each pulley is equal (0 net tension), and all 3 pulley are
     # stationary
@@ -47,8 +52,8 @@ if __name__ == "__main__":
     # Delineate train and test results
     axs[1].axvline(model.period * 2)
     axs[1].text(7.5, 0.15, "Training")
-    axs[1].text(40, 0.15, "Testing")
-    axs[1].set(ylim=(0.1, 2.295))
+    axs[1].text(32.5, 0.15, "Testing")
+    # axs[1].set(ylim=(0.1, 2.295))
     # axs[1].set(ylim=(0.1, 10))
 
     plt.tight_layout()

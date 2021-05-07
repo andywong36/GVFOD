@@ -6,6 +6,7 @@ import pandas as pd
 from scipy import interpolate
 
 from utils import get_angle, ssign, dssign
+from data.dataloader import get_robotarm_sim_data
 
 
 class RobotArmDynamics:
@@ -47,7 +48,7 @@ class RobotArmDynamics:
     period = 10
 
     # Read data
-    data = pd.read_csv(os.path.dirname(os.path.realpath(__file__)) + "/" + "test_data.csv")
+    data = get_robotarm_sim_data("normal", 500, 2)
     data.columns = ["Time", "Run", "Direction", "Angle", "Torque", "Tension"]
 
     def normal_force(self, T_m_i, T_i_a, T_a_m):
@@ -81,7 +82,7 @@ class RobotArmDynamics:
         y0[2] = self.r_a * self.arm_angle_a / self.r_i
         return y0
 
-    def __init__(self, use_extended_data=False, **kwargs):
+    def __init__(self, replacement_data=None, **kwargs):
         """
         Sets up the ordinary differential equation describing the dynamics of the robot arm.
         After initialization, there will be an ode method ode(self, time, y) that describes
@@ -148,10 +149,8 @@ class RobotArmDynamics:
         self.__dict__.update(kwargs)  # Now all the parameters can be used with self.k_1 or self.k_2 etc...
 
         # To compare training and testing data, extended testing data is available
-        if use_extended_data:
-            self.data_ext = pd.read_csv("test_data_extended.csv")[:12000]
-            self.data_ext.columns = self.data.columns
-            self.data = self.data_ext
+        if replacement_data is not None:
+            self.data = replacement_data
 
         self.angle_m = get_angle(self.l_1, self.l_3, self.l_2)
         self.angle_i = get_angle(self.l_1, self.l_2, self.l_3)
@@ -283,3 +282,22 @@ class RobotArmDynamics:
         jac[5, :] = 1 / self.I_a * ((dT_a_m - dT_i_a) * self.r_a + dfrictiona)
         # jac[4:6, :] = 0
         return jac
+
+
+def get_y0(theta_a, r_m, r_i, r_a, k_1, k_2, k_3):
+    """
+    Calculate the starting position of the
+    motor and idler pulley based on the arm pulley
+
+    Based on FBD and force balances - so that net force induced by the belt is zero on each pulley
+    """
+    A = np.array([
+        [(k_1 + k_2) * r_i, -k_1 * r_m],
+        [k_2 * r_i, k_3 * r_m]
+    ])
+
+    b = np.array([k_2 * theta_a * r_a, (k_2 + k_3) * theta_a * r_a])
+
+    theta_i, theta_m = np.linalg.solve(A, b)
+
+    return np.array([theta_m, 0, theta_i, 0, theta_a, 0])

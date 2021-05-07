@@ -18,12 +18,12 @@ from dynamics import RobotArmDynamics
 
 
 def objective(x):
+    """ Same function signature as ode_const(). Used to define the objective for hyperopt """
     import time
 
     from scipy import integrate
     from hyperopt import STATUS_OK, STATUS_FAIL
 
-    """ Same function signature as ode_const(). Used to define the objective for hyperopt """
     kwargs = x
     model = RobotArmDynamics(**kwargs)
 

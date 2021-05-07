@@ -1,4 +1,6 @@
 # Functions for loading data in a useful way from cached versions (pickles)
+import os.path
+
 import numpy as np
 import pandas as pd
 
@@ -128,3 +130,39 @@ def get_robotarm_torque_data():
     a_tor = [df["torque"].values.reshape(-1, 2000) for df in a_dat]
 
     return n_tor, zip(a_list, a_tor)
+
+
+def get_robotarm_sim_data(class_label, start_period, n_periods):
+    """This function returns a pandas dataframe, in the same format as in test_data.csv
+    It will consequently cache the data into a .csv file, named
+    robotarm_{class_label}_{start_period}_{n_periods}.pkl"""
+    # Check if the data is cached
+    assert isinstance(class_label, str)
+    assert isinstance(start_period, int)
+    assert isinstance(n_periods, int)
+    root_dir = os.path.dirname(os.path.realpath(__file__))
+    cachefile = root_dir + f"/pickles/cache/robotarm_{class_label}_{start_period}_{n_periods}.pkl"
+
+    try:
+        df = pd.read_pickle(cachefile)
+        return df
+    except FileNotFoundError:
+        print("Cached version not found. Opening new file")
+
+    try:
+        if class_label == "Normal":
+            class_label = "normal"
+        sub = pd.read_pickle(root_dir + f"/pickles/robotarm_{class_label}.pkl")
+    except FileNotFoundError:
+        raise FileNotFoundError("Data could not be loaded. check class_label.")
+
+    sub["run"] = np.repeat(np.arange(len(sub) // 2000), 2000)
+    sub = sub.iloc[start_period * 2000:(start_period + n_periods) * 2000, :]
+    sub["position"] = sub["position"] / 360 * 2 * 3.1415926
+    sub["time"] = (np.arange(2000 * n_periods) + 1) / 200
+    sub["direction"] += 1
+    sub = sub[["time", "run", "direction", "position", "torque", "tension"]]
+    sub.columns = ["Time", "Run", "Direction", "Angle", "Torque", "Tension"]
+    sub.reset_index(drop=True, inplace=True)
+    pd.to_pickle(sub, cachefile)
+    return sub
