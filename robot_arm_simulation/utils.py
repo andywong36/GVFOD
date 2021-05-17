@@ -101,3 +101,18 @@ def visualize_random_functions():
         y = np.array([fn(xi) for xi in x])
         axs[1].plot(x, y)
     axs[1].set(xlabel=r'$x$', ylabel=r'$y=f(x)$    $\sigma=1$', title="5 Random Samples of White Noise")
+
+
+def visualize_search_space(space, **kwargs):
+    from hyperopt.pyll import stochastic
+    import pandas as pd
+    import seaborn as sns
+    import matplotlib.pyplot as plt
+    samples = []
+    for _ in range(10000):
+        samples.append(stochastic.sample(space))
+    samples = pd.DataFrame({"variable": samples})
+    print(samples)
+    sns.displot(data=samples, x="variable", **kwargs)
+    plt.show()
+    return samples
