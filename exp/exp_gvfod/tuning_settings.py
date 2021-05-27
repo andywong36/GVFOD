@@ -183,7 +183,6 @@ markov_exp = Experiment(
     clf=getattr(importlib.import_module("markov.markov"), "Markov"),
     clfname="MarkovChain",
     metric="f1",
-    runs=250,
     parameters={
         "n_sensors": 3,
         "contamination": 0.05,
@@ -198,7 +197,6 @@ gvfod_exp = Experiment(
     clf=getattr(importlib.import_module("gvfod"), "GVFOD"),
     clfname="GVFOD",
     metric="f1",
-    runs=200,
     parameters={
         "space": [[10, 180],  # Angle limits
                   [-1, 1],  # Torque limits

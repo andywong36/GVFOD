@@ -1,15 +1,19 @@
+from functools import partial
 from multiprocessing import Pool, RawArray, TimeoutError
+import os
 import pickle
-import sys
+import psutil
 from typing import Union, Type, Callable
 import warnings
 
+import click
 import pyod.models.base
 import sklearn.metrics
 import sklearn.preprocessing as pp
 
 from .tuning_settings import *
 from ..data.dataloader import get_robot_arm_data
+from ..data.model_selection import TimeSeriesFolds
 
 global_data = {}
 
@@ -21,7 +25,11 @@ def init_data(X, X_shape, y, y_shape):
     global_data["y_shape"] = y_shape
 
 
-def main(exp_param, testrun=False, per_run_time=600):
+@click.command()
+@click.option("-t", "--testrun", is_flag=True, help="sets runs to 5 if True")
+@click.option("-l", "--limit", "per_run_time", default=600., help="the time limit for each run (seconds)")
+@click.argument("exp_param")
+def main(exp_param, testrun, per_run_time):
     """ Finds the best hyperparameters for an outlier detection algorithm
 
     Saves the trials.trials object into "exp_gvfod/tuning_results/{}_hyperopt.dat".format(exp_param.clfname).
@@ -35,16 +43,11 @@ def main(exp_param, testrun=False, per_run_time=600):
                     (clf, X_test, y_test)
                 "runs": number of trials for hyperopt to run
                 "parameters": parameter structure that is accepted by fmin of hyperopt
-        testrun (bool, int): sets runs to 5 if True
 
     Returns:
         int: 0 if successful.
 
     """
-
-    from functools import partial
-    import os
-    import psutil
 
     from sklearn.model_selection import train_test_split
 
@@ -88,7 +91,7 @@ def main(exp_param, testrun=False, per_run_time=600):
     print("The best parameters are ", best)
     print(trials.trials)
 
-    with open("exp_gvfod/tuning_results/{}_hyperopt.dat".format(exp_param.clfname), 'wb') as f:
+    with open("exp/exp_gvfod/tuning_results/{}_hyperopt.dat".format(exp_param.clfname), 'wb') as f:
         pickle.dump(trials.trials, f)
 
     return 0
@@ -113,8 +116,6 @@ def cross_val_od_score(clf_cls: Type[pyod.models.base.BaseDetector], kwargs: dic
         A dictionary that is used by the fmin function in hyperopt.
 
     """
-    from functools import partial
-    from exp.data.model_selection import TimeSeriesFolds
 
     # New style cross validation
     tsf = TimeSeriesFolds(n_splits=cv,
@@ -216,4 +217,4 @@ def _od_score(indices, clf_cls: Type[pyod.models.base.BaseDetector], kwargs: dic
 
 
 if __name__ == "__main__":
-    main(sys.argv[1], testrun=int(sys.argv[2]), per_run_time=600)
+    main()
