@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 
-from exp_gvfod.vis_train_size import *
+from .vis_train_size import *
 
 outliers = ["loose_l1", "loose_l2", "tight", "sandy", "highT"]
 

@@ -6,7 +6,7 @@ import numpy as np
 from hyperopt import hp as hp
 from sklearn import decomposition as decomp
 
-from exp_gvfod.tuning_utils import factors
+from .tuning_utils import factors
 
 Experiment = namedtuple("Experiment",
                         ["clf", "clfname", "use_pca", "use_scaling", "kwargs"])

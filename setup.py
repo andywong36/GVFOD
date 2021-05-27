@@ -8,6 +8,24 @@ with open("README.md", "r") as fh:
 extmodule = Extension('gvfod.clearn', sources=['src/gvfod/clearn/clearn.c', 'src/gvfod/clearn/utils.c'],
                       include_dirs=[np.get_include(), ])
 
+reqs = [
+    "numpy",
+    "pyod",
+    "pandas",
+    "tqdm",
+    "sklearn",
+    "pomegranate"
+]
+extrareqs = {
+    "exp": [
+        "hyperopt",
+        "click",
+        "scikit-learn",
+        "psutil",
+        "seaborn",
+    ]
+}
+
 setuptools.setup(
     name="GVFOD",
     version="0.0.1",
@@ -19,15 +37,8 @@ setuptools.setup(
     url="https://github.com/leafloose/GVFOD",
     packages=setuptools.find_packages('src'),
     package_dir={'':'src'},
-    install_requires=[
-        "numpy",
-        "pyod",
-        "pandas",
-        "tqdm",
-        "sklearn",
-        "pomegranate",
-        "click",
-    ],
+    install_requires=reqs,
+    extras_require=extrareqs,
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",

@@ -11,15 +11,15 @@ from tqdm import tqdm
 
 from pyod.models.lof import LOF as ALG
 # from pyod.models.iforest import IForest as ALG
-from exp_gvfod.exp_train_size_settings import lof_exp as EXP
+from .exp_train_size_settings import lof_exp as EXP
 # from exp_gvfod.exp_train_size_settings import if_exp as EXP
 
 import numpy as np
 from sklearn.preprocessing import StandardScaler
 from sklearn import decomposition
 
-from exp.data.model_selection import TimeSeriesFolds
-from exp.data import get_robot_arm_data
+from ..data.model_selection import TimeSeriesFolds
+from ..data.dataloader import get_robot_arm_data
 
 splits = 5
 

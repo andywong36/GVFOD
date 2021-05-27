@@ -14,9 +14,9 @@ from sklearn.preprocessing import StandardScaler
 from sklearn import decomposition
 from sklearn.model_selection import train_test_split
 
-from exp import data as dtl
-import exp.data.model_selection as ms
-from exp_gvfod.exp_train_size_settings import *
+from ..data import dataloader as dtl
+from ..data import model_selection as ms
+from .exp_train_size_settings import *
 
 arm_period = 10  # 10 seconds per sweep
 
