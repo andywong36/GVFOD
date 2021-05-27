@@ -1,29 +1,31 @@
+from os import path
+
 import click
 import numpy as np
 import pandas as pd
 
 @click.command()
-@click.argument('src_dir', nargs=1)
-@click.argument('dest_dir', nargs=1)
+@click.argument('src_dir', type=click.Path(exists=True))
+@click.argument('dest_dir', type=click.Path(exists=True))
 def convert_robot_data(src_dir, dest_dir):
     colnames = ("tick", "direction", "position", "torque", "tension")
 
     normal_data = dict()
     abnormal_data = dict()
 
-    normal_data["normal"] = src_dir + r"\Normal_adjusted_150.csv"
+    normal_data["normal"] = path.join(src_dir, "Normal_adjusted_150.csv")
 
-    abnormal_data["loose_l2"] = src_dir + r"\loose_data_99-100.csv"
-    abnormal_data["loose_l1"] = src_dir + r"\loose_data_120-122.csv"
-    abnormal_data["tight"] = src_dir + r"\tight_data_168-170.csv"
-    abnormal_data["sandy"] = src_dir + r"\sandy_data_150-152.csv"
-    abnormal_data["highT"] = src_dir + r"\temperature_166_at_40deg.csv"
+    abnormal_data["loose_l2"] = path.join(src_dir, "loose_data_99-100.csv")
+    abnormal_data["loose_l1"] = path.join(src_dir, "loose_data_120-122.csv")
+    abnormal_data["tight"] = path.join(src_dir, "tight_data_168-170.csv")
+    abnormal_data["sandy"] = path.join(src_dir, "sandy_data_150-152.csv")
+    abnormal_data["highT"] = path.join(src_dir, "temperature_166_at_40deg.csv")
     # abnormal_data["obstruction"] = src_dir + r"\obstruction_data.csv"
 
     for dictionary in [normal_data, abnormal_data]:
         for label in dictionary:
             combined_data = load_robot_data(dictionary[label])
-            deststr = dest_dir + r"\robotarm_{}.pkl".format(label)
+            deststr = path.join(dest_dir, "robotarm_{}.pkl".format(label))
             click.echo(f"Writing to {deststr}")
             pd.to_pickle(combined_data, deststr)
 

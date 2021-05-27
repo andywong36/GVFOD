@@ -9,36 +9,41 @@ Two major contributions are publicly available in this repository:
 These instructions are for me to guide development
 ### To use GVFOD
 * To install this package
-```shell script
-cd .../GVFOD  # Navigate to the directory of this file
-pip install .  # Installs this package
-```
+    ```shell script
+    git clone https://github.com/andywong36/GVFOD.git
+    cd GVFOD  # Navigate to the directory of this file
+    pip install .  # Installs this package
+    ```
+    If the intention is to run the experiments, use the following install instead:
+    ```shell script
+    pip install -e .[exp]
+    ```
 
 * To use this package, import the GVFOD class as follows
 
-```python
-from gvfod import GVFOD
-train, test = ...  # put your data here
-
-kwargs = {}  # See documentation for GVFOD parameters
-model = GVFOD(
-    contamination=0.05,
-    **kwargs
-) 
-model.fit(train)
-y = model.predict(test)
-
-... # and so on
-```
+    ```python
+    from gvfod import GVFOD
+    train, test = ...  # put your data here
+    
+    kwargs = {}  # See documentation for GVFOD parameters
+    model = GVFOD(
+        contamination=0.05,
+        **kwargs
+    ) 
+    model.fit(train)
+    y = model.predict(test)
+    
+    ... # and so on
+    ``` 
 
 
 ### Replicate GVFOD paper experiments
-This requires the robot arm dataset to be provided. Extract the data into the directory `.../GVFOD/data/robot_arm_1`. The file containing normal data will be `.../GVFOD/data/robot_arm_1/Normal_adjusted_150.csv`
+This requires the robot arm dataset to be provided. Extract the data into the directory `data/robotarm`. The file containing normal data will be `data/robotarm/Normal_adjusted_150.csv`
 
 Install the package as [above](#to-use-GVFOD). 
 
 Then, in the shell:
-* Make the dataset from the raw data. This caches the cleaned data in `.../GVFOD/data/pickles/robotarm_{type}.pkl` where `type` is one of `{normal, loose_l2, loose_l1, tight, sandy, highT}`
+* Make the dataset from the raw data. This caches the cleaned data in `data/pickles/robotarm_{type}.pkl` where `type` is one of `{normal, loose_l2, loose_l1, tight, sandy, highT}`
     ```shell script 
     cd GVFOD
     python exp/make_robotarm_dataset.py data/robotarm data/pickles    
@@ -48,7 +53,7 @@ Then, in the shell:
     ```shell script 
     python -m GVFOD.gvfod_param_search --runs 400 
     ```
-  This will place all the search information in the folder `.../GVFOD/exp/exp_gvfod/tuning_results/`
+  This will place all the search information in the folder `exp/exp_gvfod/tuning_results/`
   
   Since search is stochastic, and results will differ between seed, operating system, python, and dependency versions, the best parameters are hand-copied into `.../GVFOD/exp/exp_gvfod/exp_train_size_settings.py`
 
@@ -56,12 +61,12 @@ Then, in the shell:
     ```shell script
     python -m GVFOD.gvfod_exp
     ```
-    Results will be placed into `.../GVFOD/exp/exp_gvfod/results`
+    Results will be placed into `exp/exp_gvfod/results`
 
 * Visualization
     ```shell script
     python -m GVFOD.gvfod_vis  
     ```
-    Figures will be placed into `.../GVFOD/exp/exp_gvfod/figures`
+    Figures will be placed into `exp/exp_gvfod/figures`
 ### Replicate simulator paper experiments
 In progress
