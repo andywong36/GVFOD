@@ -209,24 +209,17 @@ fabric.properties
 **/.idea
 
 
-# Specific files
-data/data_to_pandas.py
-data/pickles/machine*
-data/pickles/robotarm*
-*.dat
-*.df
-non_stationarity.ipynb
-exp_gvfod/results_for*
-data/servo/
-exp_servo/
-experiment_sensitivity/
-exp_gvfod/vis_non_stationarity.py
-data/*.png
-data/robot_arm_1/
-data/robot_arm_gradual_failure_sim/
-robot_arm_simulation/gradual_failure/*.npy
-robot_arm_simulation/*results*.pkl
-robot_arm_simulation/test_data_extended.csv
-
-# Consider adding this - since it's a demo of the usage of this package
-Demo.ipynb
+# Specific to this project
+# Don't VC data, but keep the folder structure
+data/*
+!data/pickles/.gitkeep
+!data/robotarm/.gitkeep
+# Notebooks - broken for now, don't include them
+notebooks
+# Experiments - include code, settings, but not results
+exp/**/*results*
+# Broken experiments
+exp/exp_robot_arm_simulation
+exp/exp_sensitivity
+exp/exp_servo
+exp/exp_sim_gvfod
