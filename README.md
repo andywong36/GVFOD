@@ -51,15 +51,15 @@ Then, in the shell:
 
 * Parameter tuning / search
     ```shell script 
-    python -m GVFOD.gvfod_param_search --runs 400 
+    python -m exp.exp_gvfod.tuning gvfod_exp > exp/exp_gvfod/logs/exp_gvfod.log 2>&1
     ```
-  This will place all the search information in the folder `exp/exp_gvfod/tuning_results/`
+  This will place all the search information in the folder `exp/exp_gvfod/tuning_results/`. The experiment name `gvfod_exp` needs to be replaced for every algorithm that is to be tested. The experiments and their names are all defined in `exp/exp_gvfod/tuning_settings.py`.
   
   Since search is stochastic, and results will differ between seed, operating system, python, and dependency versions, the best parameters are hand-copied into `.../GVFOD/exp/exp_gvfod/exp_train_size_settings.py`
 
 * Experiments 
     ```shell script
-    python -m GVFOD.gvfod_exp
+    python -m exp.exp_gvfod.train_size
     ```
     Results will be placed into `exp/exp_gvfod/results`
 

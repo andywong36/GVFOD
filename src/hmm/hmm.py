@@ -24,13 +24,13 @@ class HMM(BaseDetector):
     def fit(self, X, y=None):
         X_processed = self._check_and_preprocess(X, True)
         self.hmmmodel = HiddenMarkovModel.from_samples(NormalDistribution, self.n_states, X_processed,
-                                                       algorithm="viterbi",
-                                                       n_jobs=8, verbose=True, batches_per_epoch=10)
+                                                       algorithm="baum-welch",
+                                                       n_jobs=8, verbose=True, batches_per_epoch=20)
         self.hmmmodel.bake()
 
         self.decision_scores_ = np.zeros(X.shape[0])
         for i, sequence in enumerate(X_processed):
-            self.decision_scores_[i] = self.hmmmodel.log_probability(sequence)
+            self.decision_scores_[i] = -self.hmmmodel.log_probability(sequence)
 
         self._process_decision_scores()
 
@@ -67,6 +67,6 @@ class HMM(BaseDetector):
 
         scores = np.zeros(X.shape[0])
         for i, sequence in enumerate(X_processed):
-            scores[i] = self.hmmmodel.log_probability(sequence)
+            scores[i] = -self.hmmmodel.log_probability(sequence)
 
         return scores

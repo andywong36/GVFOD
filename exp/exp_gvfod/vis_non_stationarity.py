@@ -11,7 +11,7 @@ from tqdm import tqdm
 
 from pyod.models.lof import LOF as ALG
 # from pyod.models.iforest import IForest as ALG
-from .exp_train_size_settings import lof_exp as EXP
+from .train_size_settings import lof_exp as EXP
 # from exp_gvfod.exp_train_size_settings import if_exp as EXP
 
 import numpy as np
