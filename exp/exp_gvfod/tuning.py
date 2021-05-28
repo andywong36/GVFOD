@@ -204,7 +204,7 @@ def _od_score(indices, clf_cls: Type[pyod.models.base.BaseDetector], kwargs: dic
         X_test = transform.transform(X_test)
 
     # Ensure y labels are binary
-    y_train, y_test = y_train.astype(np.bool), y_test.astype(np.bool)
+    y_train, y_test = y_train.astype(bool), y_test.astype(bool)
 
     if isinstance(scoring, str):
         scoring = sklearn.metrics.get_scorer(scoring)
