@@ -125,13 +125,13 @@ gvfod_exp = Experiment(
     kwargs=save_kwargs(space=[[10, 180],  # Angle limits
                               [-1, 1],  # Torque limits
                               [0, 300]],
-                       divs_per_dim=[7, 7, 2],
+                       divs_per_dim=[4, 6, 5],
                        wrap_idxs=None,
                        int_idxs=None,
                        numtilings=2,
-                       discount_rate=0.9587470519252619,
-                       learn_rate=0.10439012333499052,
-                       lamda=0.20893365640615555,
-                       beta=888,
+                       discount_rate=0.9311369540603904,
+                       learn_rate=0.04635730926665588,
+                       lamda=0.583923045702212,
+                       beta=466,
                        **contamination)
 )
