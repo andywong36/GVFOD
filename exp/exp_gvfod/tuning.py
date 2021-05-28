@@ -27,7 +27,7 @@ def init_data(X, X_shape, y, y_shape):
 
 @click.command()
 @click.option("-t", "--testrun", is_flag=True, help="sets runs to 5 if True")
-@click.option("-l", "--limit", "per_run_time", default=600., help="the time limit for each run (seconds)")
+@click.option("-l", "--limit", "per_run_time", default=600, help="the time limit for each run (seconds)")
 @click.argument("exp_param")
 def main(exp_param, testrun, per_run_time):
     """ Finds the best hyperparameters for an outlier detection algorithm
@@ -147,7 +147,10 @@ def cross_val_od_score(clf_cls: Type[pyod.models.base.BaseDetector], kwargs: dic
     timed_out = False
     while True:
         try:
-            results.append(imap_res.next(timeout=timeout))
+            if timeout != 0:
+                results.append(imap_res.next(timeout=timeout))
+            else:
+                results.append(imap_res.next())
         except TimeoutError:
             timed_out = True
             break
