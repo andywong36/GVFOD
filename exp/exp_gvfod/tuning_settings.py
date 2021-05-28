@@ -193,6 +193,18 @@ markov_exp = Experiment(
     }
 )
 
+hmm_exp = Experiment(
+    clf=getattr(importlib.import_module("hmm"), "HMM"),
+    clfname = "HMM",
+    metric="f1",
+    parameters={
+        "n_sensors": 3,
+        "n_states": hyperopt.pyll.scope.int(hp.choice("n_states"), (4, 8, 16, 32)),
+        "contamination": 0.05,
+    },
+    runs=8,
+)
+
 gvfod_exp = Experiment(
     clf=getattr(importlib.import_module("gvfod"), "GVFOD"),
     clfname="GVFOD",
