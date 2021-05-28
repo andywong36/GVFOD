@@ -153,7 +153,7 @@ if __name__ == "__main__":
     #     [precision_score, recall_score, f1_score]
     # )
 
-    dir = "exp_gvfod/results_for_2020_08_report/"
+    dir = "exp/exp_gvfod/results_server/"
     for file in os.listdir(dir):
         if file.endswith(".json"):
             if TESTRUN:
