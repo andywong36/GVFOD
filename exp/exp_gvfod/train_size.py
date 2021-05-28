@@ -130,7 +130,9 @@ def test(dest, delay, default, tuning_data, algs):
     X_abn_ss_r = raw_array_from_ndarray(X_abn_ss)
     y_abn_r = raw_array_from_ndarray(y_abn)
 
-    p = pool.Pool(processes=4, initializer=init_data, initargs=[X_nor_r, X_nor_ss_r, y_nor_r, X_nor.shape,
+    processes = 4 if os.name == "nt" else 64
+
+    p = pool.Pool(processes=processes, initializer=init_data, initargs=[X_nor_r, X_nor_ss_r, y_nor_r, X_nor.shape,
                                                                  X_abn_r, X_abn_ss_r, y_abn_r, X_abn.shape])
     jobs = []  # Contains the returns from pool.apply_async. Iterate through these to get the Series.
 
