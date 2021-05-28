@@ -201,7 +201,6 @@ def test(dest, delay, default, tuning_data, algs):
                         args=(exp, train_idx + exp_start, test_idx + exp_start, class_labels)
                     )
                 )
-        break ### IMPORTANT - REMOVE THIS BEFORE RUNNING
 
     p.close()
 
