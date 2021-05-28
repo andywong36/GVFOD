@@ -106,7 +106,7 @@ pca_exp = Experiment(
 )
 
 markov_exp = Experiment(
-    clf=getattr(importlib.import_module("markov.markov"), "Markov"),
+    clf=getattr(importlib.import_module("markov"), "Markov"),
     clfname="MarkovChain",
     use_pca=False,
     use_scaling=True,
@@ -115,6 +115,14 @@ markov_exp = Experiment(
                        resample=True,
                        sample_period=1,
                        **contamination)
+)
+
+hmm_exp = Experiment(
+    clf=getattr(importlib.import_module("hmm"), "HMM"),
+    clfname="HMM",
+    use_pca=False,
+    use_scaling=False,
+    kwargs=save_kwargs(n_sensors=3, n_states=8, suppress=True, max_iterations=10, **contamination)
 )
 
 gvfod_exp = Experiment(

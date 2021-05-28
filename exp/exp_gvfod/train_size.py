@@ -6,6 +6,7 @@ import time
 
 from multiprocessing import pool, RawArray
 
+import click
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
@@ -35,8 +36,24 @@ def init_data(X_nor, X_nor_scaled, y_nor, X_nor_shape,
     global_data["X_abn_shape"] = X_abn_shape
 
 
-def test(file, delay, use_default_params, train_loss=False):
-    """ Main testing function """
+@click.command()
+@click.option("-l", "--lag", "delay", show_default=True, help="The amount of samples between training and testing",
+              default=0)
+@click.option("--default-param/--no-default-param", "default", required=True,
+              help="use default or tuned (no-default) parameters")
+@click.option("--tuning-data/--no-tuning-data", "tuning_data", required=True,
+              help="evaluate on the tuning data, or testing (no-tuning-data) data")
+@click.argument("dest", type=click.Path(exists=True))
+@click.argument("algs", nargs=-1)
+def test(dest, delay, default, tuning_data, algs):
+    """
+    Main testing function.
+
+    Results are placed in DEST folder
+    Select only a small subset of algorithms with ALGS
+    """
+
+    file = os.path.join(dest, f"train_size_delay_{delay}_default_{default}_trainloss_{tuning_data}.json")
 
     n_experiments = 20  # Training data starts are offset between experiments
     minutes_between_exps = 10  # The time between each experiment start
@@ -68,7 +85,7 @@ def test(file, delay, use_default_params, train_loss=False):
     _y_list = []
     for i in np.unique(y):
         X_train, X_holdout, y_train, y_holdout = train_test_split(X[y == i], y[y == i], train_size=0.5, shuffle=False)
-        if not train_loss:
+        if not tuning_data:
             if i == 0:
                 # This data was never trained on in hyperparameter sweeping.
                 _X_list.append(X_train[-n_param_test:])
@@ -113,7 +130,7 @@ def test(file, delay, use_default_params, train_loss=False):
     X_abn_ss_r = raw_array_from_ndarray(X_abn_ss)
     y_abn_r = raw_array_from_ndarray(y_abn)
 
-    p = pool.Pool(processes=32, initializer=init_data, initargs=[X_nor_r, X_nor_ss_r, y_nor_r, X_nor.shape,
+    p = pool.Pool(processes=4, initializer=init_data, initargs=[X_nor_r, X_nor_ss_r, y_nor_r, X_nor.shape,
                                                                  X_abn_r, X_abn_ss_r, y_abn_r, X_abn.shape])
     jobs = []  # Contains the returns from pool.apply_async. Iterate through these to get the Series.
 
@@ -132,7 +149,10 @@ def test(file, delay, use_default_params, train_loss=False):
                ("Time of Start", int),
                ("Training Size", int),
                ("Testing Size", int),
-               ("Delay", int)]
+               ("Delay", int),
+               ("Train Time", float),
+               ("Test Time", float),
+               ]
     for data_class in class_labels:
         columns.append((f"c_{data_class}", int))
         columns.append((f"ic_{data_class}", int))
@@ -155,10 +175,13 @@ def test(file, delay, use_default_params, train_loss=False):
             for exp in [
                 if_exp, ocsvm_exp, lof_exp, abod_exp, kNN_exp, hbos_exp, mcd_exp, pca_exp,
                 markov_exp,
+                hmm_exp,
                 gvfod_exp
             ]:
-                if use_default_params:
-                    if exp.clfname not in ["GVFOD", "MarkovChain"]:
+                if (len(algs) > 0) and (exp.clfname not in algs):
+                    continue
+                if default:
+                    if exp.clfname not in ["GVFOD", "MarkovChain", "HMM"]:
                         contamination = exp.kwargs["contamination"]
                         exp.kwargs.clear()
                         exp.kwargs["contamination"] = contamination
@@ -170,7 +193,7 @@ def test(file, delay, use_default_params, train_loss=False):
                         exp.kwargs["lamda"] = 0.1
                         exp.kwargs["beta"] = 250
                     else:
-                        pass  # Keep MarkovChain experiment the same.
+                        pass  # Keep MarkovChain and HMM experiments the same.
 
                 jobs.append(
                     p.apply_async(
@@ -178,6 +201,7 @@ def test(file, delay, use_default_params, train_loss=False):
                         args=(exp, train_idx + exp_start, test_idx + exp_start, class_labels)
                     )
                 )
+        break ### IMPORTANT - REMOVE THIS BEFORE RUNNING
 
     p.close()
 
@@ -238,11 +262,14 @@ def process(experiment, train_idx, test_idx, class_labels):
     if "n_neighbors" in experiment.kwargs:
         kwargs["n_neighbors"] = min(_return_dict["Training Size"] - 1, kwargs["n_neighbors"])
     model = experiment.clf(**kwargs)
+    train_start = time.time()
     model.fit(X_nor_train)
+    _return_dict["Train Time"] = time.time() - train_start
 
     # Make predictions
     y_test = np.concatenate((y_nor_test, y_abn), axis=0)
     X_test = np.concatenate((X_nor_test, X_abn), axis=0)
+    test_start = time.time()
     if experiment.clfname in ["GVFOD", "MarkovChain"]:
         y_pred = np.zeros_like(y_test)
         for i, outlier in enumerate(np.unique(y_abn)):
@@ -253,6 +280,7 @@ def process(experiment, train_idx, test_idx, class_labels):
             y_pred[selection] = prediction
     else:
         y_pred = model.predict(X_test)
+    _return_dict["Test Time"] = time.time() - test_start
 
     for cls_idx, cls_name in enumerate(class_labels):
         # Calculate the metrics for each outlier class separately
@@ -265,17 +293,4 @@ def process(experiment, train_idx, test_idx, class_labels):
 
 
 if __name__ == '__main__':
-    delayarg = int(sys.argv[1])
-    defaultarg = bool(int(sys.argv[2]))
-    if len(sys.argv) == 4:
-        trainlossarg = bool(int(sys.argv[3]))
-        test(f"exp_gvfod/results_for_2020_08_report/exp_train_size_"
-             f"delay_{delayarg}_"
-             f"default_{defaultarg}_"
-             f"trainloss_{trainlossarg}.json",
-             delayarg, defaultarg, trainlossarg)
-    else:
-        test(f"exp_gvfod/results_for_2020_08_report/exp_train_size_"
-             f"delay_{delayarg}_"
-             f"default_{defaultarg}.json",
-             delayarg, defaultarg)
+    test()

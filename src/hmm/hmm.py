@@ -11,10 +11,15 @@ class HMM(BaseDetector):
                  # Tile Coding params
                  n_sensors: int,
                  n_states: int,
-                 # OD params
+                 # OD params,
+                 max_iterations: int = 1e8,
+                 suppress: bool = False,
                  contamination: float = 0.10):
         self.n_sensors = n_sensors
         self.n_states = n_states
+
+        self.verbose = not suppress
+        self.max_iterations = max_iterations
 
         self.means = np.zeros(self.n_sensors)
         self.decision_scores_ = None
@@ -25,7 +30,8 @@ class HMM(BaseDetector):
         X_processed = self._check_and_preprocess(X, True)
         self.hmmmodel = HiddenMarkovModel.from_samples(NormalDistribution, self.n_states, X_processed,
                                                        algorithm="baum-welch",
-                                                       n_jobs=8, verbose=True, batches_per_epoch=20)
+                                                       n_jobs=8, verbose=self.verbose, batches_per_epoch=20,
+                                                       max_iterations=self.max_iterations)
         self.hmmmodel.bake()
 
         self.decision_scores_ = np.zeros(X.shape[0])
