@@ -219,6 +219,7 @@ notebooks
 # Experiments - include code, settings, but not results
 exp/**/*results*
 !exp/exp_gvfod/results/.gitkeep
+!exp/exp_gvfod/tuning_results/.gitkeep
 # Broken experiments
 exp/exp_robot_arm_simulation
 exp/exp_sensitivity
