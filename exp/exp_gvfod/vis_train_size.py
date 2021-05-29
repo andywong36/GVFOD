@@ -33,7 +33,7 @@ def plot_results(json_filepath, metrics, linelabel=True):
 
     res = pd.read_json(json_filepath)
     res["Class"] = res["Algorithm"].map(
-        lambda alg: "Temporal" if alg in ["GVFOD", "MarkovChain"] else "Multivariate")
+        lambda alg: "Temporal" if alg in ["GVFOD", "MarkovChain", "HMM"] else "Multivariate")
 
     outlier_names = parse_outlier_names_from_columns(res.columns)
 
@@ -73,7 +73,7 @@ def plot_results(json_filepath, metrics, linelabel=True):
             # Set GVFOD to heavier, and change it to black
             for line in ax.get_lines():
                 # print(line)
-                if ("GVFOD" in str(line)) or ("line9" in str(line)):
+                if ("GVFOD" in str(line)) or ("line10" in str(line)):
                     line.set_lw(1.5)
                     line.set_c("k")
 

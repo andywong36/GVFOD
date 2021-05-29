@@ -55,18 +55,34 @@ Then, in the shell:
     ```
   This will place all the search information in the folder `exp/exp_gvfod/tuning_results/`. The experiment name `gvfod_exp` needs to be replaced for every algorithm that is to be tested. The experiments and their names are all defined in `exp/exp_gvfod/tuning_settings.py`.
   
-  Since search is stochastic, and results will differ between seed, operating system, python, and dependency versions, the best parameters are hand-copied into `.../GVFOD/exp/exp_gvfod/exp_train_size_settings.py`
+  Since search is stochastic, and results will differ between random state, operating system, python and dependency versions, the best parameters are hand-copied into `.../GVFOD/exp/exp_gvfod/exp_train_size_settings.py`
 
 * Experiments 
+    
+    The flags `--no-default-param` and `--default-param` refer to optimized (hyperopt) and hand-selected parameters 
+    respectively. `--tuning-data` and `--no-tuning-data` refer to the half of the data that was used. 
     ```shell script
-    python -m exp.exp_gvfod.train_size
+    python -m exp.exp_gvfod.train_size --no-default-param --tuning-data exp/exp_gvfod/results 
+    python -m exp.exp_gvfod.train_size --no-default-param --no-tuning-data exp/exp_gvfod/results
+    python -m exp.exp_gvfod.train_size --default-param --tuning-data exp/exp_gvfod/results
+    python -m exp.exp_gvfod.train_size --default-param --no-tuning-data exp/exp_gvfod/results
     ```
-    Results will be placed into `exp/exp_gvfod/results`
+    Results will be placed into `exp/exp_gvfod/results`. These commands generate the results in the order of the plots 
+    in the order found in the paper.  
 
 * Visualization
     ```shell script
-    python -m GVFOD.gvfod_vis  
+    python -m exp.exp_gvfod.vis_train_size exp/exp_gvfod/results  
     ```
-    Figures will be placed into `exp/exp_gvfod/figures`
+    Figures will be placed into the same folder
+* Runtime estimates
+    ``` shell script
+    python -m exp.exp_gvfod.runtimes exp/exp_gvfod/results --train 1000 2000 --test
+    ```
+* Statistical tests
+    ```shell script
+    python -m exp.exp_gvfod.t_test exp/exp_gvfod/results --train 2000
+    ```
+
 ### Replicate simulator paper experiments
 In progress
