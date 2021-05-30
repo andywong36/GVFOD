@@ -77,11 +77,13 @@ Then, in the shell:
     Figures will be placed into the same folder
 * Runtime estimates
     ``` shell script
-    python -m exp.exp_gvfod.runtimes exp/exp_gvfod/results --train 1000 2000 --test
+    python -m exp.exp_gvfod.runtimes exp/exp_gvfod/results 
     ```
 * Statistical tests
+    
+    The statistical results are calculated using a paired sample t-test, for one training size, and for one (of the four) experiments. 
     ```shell script
-    python -m exp.exp_gvfod.t_test exp/exp_gvfod/results --train 2000
+    python -m exp.exp_gvfod.t_test --train 2000 exp/exp_gvfod/results/train_size_delay_0_default_False_trainloss_True.json
     ```
 
 ### Replicate simulator paper experiments

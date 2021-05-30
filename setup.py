@@ -23,6 +23,7 @@ extrareqs = {
         "scikit-learn",
         "psutil",
         "seaborn",
+        "statsmodels",
     ]
 }
 
