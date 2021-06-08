@@ -1,34 +1,38 @@
 import os
+import sys
+from multiprocessing import Pool
 
+import click
+
+from matplotlib import pyplot as plt
+import matplotlib.collections
 import numpy as np
 import pandas as pd
 import seaborn as sns
-from matplotlib import pyplot as plt
-import matplotlib.collections
 from sklearn.metrics import precision_score, recall_score, f1_score
-
-from multiprocessing import Pool
-
-ylabel_map = {f1_score: "F1",
-              precision_score: "Precision",
-              recall_score: "Recall"}
-
-subplot_map = {0: "(a)",
-               1: "(b)",
-               2: "(c)"}
-
-plt.rcParams["font.family"] = "Linux Libertine"
-
-TESTRUN = False
-LOOSE_L1_ONLY = True
+from sklearn.linear_model import LinearRegression as LR
 
 
-def plot_results(json_filepath, metrics, linelabel=True):
-    from itertools import cycle
+@click.command()
+@click.argument("src", nargs=1)
+@click.argument("dst", nargs=1)
+@click.argument("failures", nargs=-1)
+def main(src, dst, failures):
+    p = Pool()
 
-    # title = "Outlier Detection Training Data Requirements \n " \
-    #         "Outlier: OUTLIER \n " \
-    #         "Delay: DELAY"
+    for file in os.listdir(src):
+        if file.endswith(".json"):
+            p.apply_async(plot_results, [os.path.join(src, file), dst,
+                                         [precision_score, recall_score, f1_score], failures])
+
+    p.close()
+    p.join()
+
+    print("Plotting Complete")
+
+
+def plot_results(json_filepath, dst, metrics, failures):
+    plt.rcParams["font.family"] = "Times New Roman"
     xlabel = r"Training Data (samples)"
 
     res = pd.read_json(json_filepath)
@@ -38,7 +42,7 @@ def plot_results(json_filepath, metrics, linelabel=True):
     outlier_names = parse_outlier_names_from_columns(res.columns)
 
     for abn_str in outlier_names[1:]:
-        if LOOSE_L1_ONLY and (abn_str != "loose_l1"):
+        if (abn_str not in failures) and (len(failures) > 0):
             continue
         print(f"Working on abnormal class: {abn_str}")
         fig, axs = plt.subplots(1, len(metrics), figsize=(7 * 1.5, 7 * 0.8))
@@ -50,6 +54,14 @@ def plot_results(json_filepath, metrics, linelabel=True):
                                                     res["ic_" + nor_str],
                                                     res["c_" + abn_str],
                                                     res["ic_" + abn_str])
+
+            if metric_name == "f1_score" and abn_str == "loose_l1":
+                selection = res.loc[
+                          (res["Algorithm"] == "GVFOD") & (res["Training Size"].isin([973, 1076])),
+                          ["Training Size", f"{metric_name}_{abn_str}"]]
+                model = LR()
+                model.fit(selection["Training Size"].values.reshape(-1, 1), selection[f"{metric_name}_{abn_str}"].values.reshape(-1, 1))
+                print(f"F1 score @ 1000, {os.path.split(json_filepath)[1]}: {model.predict(np.array([[1000]]))}")
 
             p = sns.lineplot(
                 x='Training Size',
@@ -72,8 +84,8 @@ def plot_results(json_filepath, metrics, linelabel=True):
 
             # Set GVFOD to heavier, and change it to black
             for line in ax.get_lines():
-                # print(line)
-                if ("GVFOD" in str(line)) or ("line10" in str(line)):
+                # This is pretty hacky - but it works
+                if ("GVFOD" in str(line)) or ("_line10" in str(line)):
                     line.set_lw(1.5)
                     line.set_c("k")
 
@@ -83,17 +95,20 @@ def plot_results(json_filepath, metrics, linelabel=True):
                 ax.legend(loc="lower right", frameon=True)
                 for line in ax.get_legend().get_texts():
                     if line.get_text() in ["Algorithm", "Class"]:
-                        # line.set_text(r"$\mathbf{" + line.get_text().split(" ")[-1] + "}$")
-                        # line.set_text(line.get_text().split(" ")[-1])
                         if line.get_text() == "Class":
                             line.set_text("Algorithm Type")
                         line.set_ha("left")
-                        # print(line.get_position())
                         line.set_position((-35, 0))
-            # if i is not 0:
-            #     ax.get_yaxis().set_ticks([])
-            #     ax.set_yticklabels([])
-            ax.set_title(subplot_map[i] + "  " + ylabel_map[metric], weight="bold", y=-0.15)
+
+            ylabel_map = {f1_score: "F1",
+                          precision_score: "Precision",
+                          recall_score: "Recall"}
+
+            subplot_map = {0: "(a)",
+                           1: "(b)",
+                           2: "(c)"}
+
+            ax.set_title(subplot_map[i] + "  " + ylabel_map[metric], weight="bold", y=-0.15, fontsize=10)
             ax.set_ylim(0, 1.01)
             ax.set_xlim(0, 2000)
             ax.set_xlabel(xlabel)
@@ -101,11 +116,12 @@ def plot_results(json_filepath, metrics, linelabel=True):
             ax.spines['top'].set_visible(False)
 
             p.yaxis.label.set_visible(False)
-        # plt.suptitle(title.replace("OUTLIER", abn_str).replace("DELAY", str(res.Delay.unique()[0])))
         fig.tight_layout(rect=[0, 0, 1, 1])
-        plt.savefig(json_filepath.replace(".json", f"_{abn_str}.png").replace("exp_train_size_", "3-"), dpi=300)
-        if TESTRUN:
-            break
+        filename = (os.path.split(json_filepath)[1]) \
+            .replace(".json", f"_{abn_str}.png") \
+            .replace("train_size_delay_0_", "3-")
+        print(filename)
+        plt.savefig(os.path.join(dst, filename), dpi=300)
 
     return res
 
@@ -139,33 +155,4 @@ def _create_true_pred_vec_from_count(true_negative, false_positive, true_positiv
 
 
 if __name__ == "__main__":
-    def flip_relevant_elements(metric):
-        def new_metric(pred, true, **kwargs):
-            return metric(1 - pred, 1 - true, **kwargs)
-
-        return new_metric
-
-
-    p = Pool()
-
-    # plot_results(
-    #     r"exp_gvfod\results_for_2020_08_report\exp_train_size_delay_720_default_False.json",
-    #     [precision_score, recall_score, f1_score]
-    # )
-
-    dir = "exp/exp_gvfod/results_server/"
-    for file in os.listdir(dir):
-        if file.endswith(".json"):
-            if TESTRUN:
-                plot_results(
-                    os.path.join(dir, file),
-                    [precision_score, recall_score, f1_score]
-                )
-                break
-            else:
-                p.apply_async(plot_results, [os.path.join(dir, file), [precision_score, recall_score, f1_score]])
-
-    p.close()
-    p.join()
-
-    print("Plotting Complete")
+    main()
