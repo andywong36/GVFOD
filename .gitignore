@@ -220,6 +220,7 @@ notebooks
 exp/**/*results*
 !exp/exp_gvfod/results/.gitkeep
 !exp/exp_gvfod/tuning_results/.gitkeep
+!exp/exp_gvfod/runtime_results/.gitkeep
 exp/exp_gvfod/figures/*
 !exp/exp_gvfod/figures/.gitkeep
 # Broken experiments
