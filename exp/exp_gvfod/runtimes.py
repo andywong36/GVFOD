@@ -3,11 +3,12 @@ from multiprocessing import pool, RawArray
 import time
 
 import click
-import numpy as np
 import pandas as pd
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split
 from tqdm import tqdm
+import matplotlib.pyplot as plt
+import seaborn as sns
 
 from ..data import dataloader as dtl
 from ..data import model_selection as ms
@@ -18,6 +19,7 @@ from .train_size_settings import *
 @click.group()
 def cli():
     pass
+
 
 @cli.command("test")
 @click.option("-l", "--lag", "delay", show_default=True, help="The amount of samples between training and testing",
@@ -57,7 +59,7 @@ def test(dest, delay, default, tuning_data, algs):
 
     ## Read all the data and store it in global memory
     X, y, class_labels = dtl.get_robot_arm_data(return_class_labels=True)
-    highTfilter = (y==0) | (y==class_labels.index("highT"))
+    highTfilter = (y == 0) | (y == class_labels.index("highT"))
     X = X[highTfilter, :]
     y = y[highTfilter]
     y = (y != 0).astype(int)
@@ -118,7 +120,7 @@ def test(dest, delay, default, tuning_data, algs):
     processes = 1
 
     p = pool.Pool(processes=processes, initializer=init_data, initargs=[X_nor_r, X_nor_ss_r, y_nor_r, X_nor.shape,
-                                                                 X_abn_r, X_abn_ss_r, y_abn_r, X_abn.shape])
+                                                                        X_abn_r, X_abn_ss_r, y_abn_r, X_abn.shape])
     jobs = []  # Contains the returns from pool.apply_async. Iterate through these to get the Series.
 
     # Plan the experiments
@@ -200,6 +202,7 @@ def test(dest, delay, default, tuning_data, algs):
 
     print(f"Time elapsed: {time.time() - start}")
 
+
 @cli.command()
 @click.argument("dir", type=click.Path(exists=True))
 def summary(dir):
@@ -218,30 +221,49 @@ def summary(dir):
     algorithms = data["Algorithm"].unique()
     trainsizes = data["Training Size"].unique()
     runtimes = pd.DataFrame(index=algorithms, columns=[*[f"train{n}" for n in trainsizes], "test"])
+    melted = data.melt(id_vars=["Algorithm", "Time of Start", "Training Size"], value_vars=["Train Time", "Test Time"],
+                       value_name="Time")
     # For each algorithm
     #   For each training size in [700, 1400]
     #       Get 5th pctile runtime (linear regression, 95CI on
     #   Get 5th pctile runtime testing size
 
-
-    for alg in algorithms:
+    fig, axs = plt.subplots(3, 4)
+    for i, alg in enumerate(algorithms):
+        melted2 = pd.DataFrame(columns=["var", "val"])
         for trainsize in trainsizes:
             # select that algorithm, and training size
             selection = data.loc[
                 (data["Training Size"] == trainsize) & (data["Algorithm"] == alg),
                 ["Training Size", "Train Time"]
             ]
+            melted2 = melted2.append(pd.DataFrame({
+                "var": [f"train{trainsize}"] * len(selection),
+                "val": selection["Train Time"].values.flatten()
+            }))
             assert len(selection) > 0
-            runtimes.loc[alg, f"train{trainsize}"] = selection.quantile(0.05)["Train Time"]
+            runtimes.loc[alg, f"train{trainsize}"] = selection.quantile(0.5)["Train Time"]
         # Testing time
         selection = data.loc[
             ((data["Algorithm"] == alg) & (data["Training Size"] == trainsizes[0])),
             ["Test Time"]
         ]
+        melted2 = melted2.append(pd.DataFrame({
+            "var": ["test"] * len(selection),
+            "val": selection["Test Time"].values.flatten()
+        }))
         runtimes.loc[alg, "test"] = selection.quantile(0.05)["Test Time"]
+
+        # Plotting of each algorithm
+
+        ax = axs[i // 4][i % 4]
+        sns.boxplot(x="val", y="var", data=melted2, ax=ax)
+        ax.set(title=alg)
 
     pd.options.display.float_format = "{:,.2f}".format
     print(runtimes)
+    plt.show()
+
 
 if __name__ == "__main__":
     cli()
