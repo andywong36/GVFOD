@@ -77,7 +77,8 @@ Then, in the shell:
     Figures will be placed into the same folder
 * Runtime estimates
     ``` shell script
-    python -m exp.exp_gvfod.runtimes exp/exp_gvfod/results 
+    python -m exp.exp_gvfod.runtime test --lag 0 --no-default-param --no-tuning-data exp/exp_gvfod/runtime_results
+    python -m exp.exp_gvfod.runtime summary exp/exp_gvfod/runtime_results
     ```
 * Statistical tests
     
